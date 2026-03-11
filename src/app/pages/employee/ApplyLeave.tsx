@@ -199,7 +199,11 @@ export default function ApplyLeave() {
                         </span>
                         <p className="text-xs font-semibold text-gray-900 leading-tight">{lt.name}</p>
                         <p className="text-xs text-gray-500 mt-0.5">
-                          Balance: <span className={`font-bold ${bal <= 2 ? "text-red-500" : "text-green-600"}`}>{bal}</span>
+                          {lt.code === "LOP" ? (
+                            <span className="font-bold text-gray-600 italic">Loss of Pay</span>
+                          ) : (
+                            <>Balance: <span className={`font-bold ${bal <= 2 ? "text-red-500" : "text-green-600"}`}>{bal}</span></>
+                          )}
                         </p>
                       </button>
                     );
@@ -272,12 +276,17 @@ export default function ApplyLeave() {
                     <p className="font-medium">
                       {totalDays} working day{totalDays !== 1 ? "s" : ""} requested.
                     </p>
-                    {selectedType && (
+                    {selectedType && selectedType.code !== "LOP" && (
                       <p className="text-xs opacity-90 mt-0.5">
                         Balance: <strong>{totalBalance}</strong> days.
                         {availableBalance !== totalBalance && (
                           <> (Available: <strong>{availableBalance}</strong> days after pending requests)</>
                         )}
+                      </p>
+                    )}
+                    {selectedType && selectedType.code === "LOP" && (
+                      <p className="text-xs opacity-90 mt-0.5">
+                        This leave will be recorded as <strong>Loss of Pay (LOP)</strong>.
                       </p>
                     )}
                     {!hasEnoughBalance && (

@@ -4,9 +4,8 @@ import { DashboardLayout } from "../../layouts/DashboardLayout";
 import { LeaveStatusBadge } from "../../components/LeaveStatusBadge";
 import { Modal } from "../../components/Modal";
 import { useAuth } from "../../context/AuthContext";
-import { useLeave } from "../../context/LeaveContext";
 import { dateRangeLabel, formatDate, formatDateTime } from "../../utils/dateUtils";
-import type { LeaveRequest } from "../../data/mockData";
+import { useLeave, LeaveRequest } from "../../context/LeaveContext";
 import { toast } from "sonner";
 
 export default function TeamRequests() {
@@ -47,11 +46,11 @@ export default function TeamRequests() {
   console.log("TeamRequests - All Users:", allUsers);
 
   if (!currentUser) return null;
-  const currentUserId = (currentUser as any)._id || (currentUser as any).id;
+  const currentUserId = currentUser._id;
 
   const teamMembers = allUsers.filter((u) => u.managerId === currentUserId || (u as any).managerId?._id === currentUserId);
   const teamIds = teamMembers.map((u) => u.id || u._id).filter(Boolean);
-  const teamRequests = leaveRequests.filter((r) => teamIds.includes(r.employeeId));
+  const teamRequests = leaveRequests.filter((r) => r.employeeId && teamIds.includes(r.employeeId));
 
   const filtered = teamRequests.filter((r) => {
     const matchSearch = (r.employeeName?.toLowerCase() || "").includes(search.toLowerCase()) || (r.leaveTypeName?.toLowerCase() || "").includes(search.toLowerCase());
@@ -69,7 +68,7 @@ export default function TeamRequests() {
 
   const handleApprove = async (r: LeaveRequest) => {
     try {
-      const requestId = r.id || r._id;
+      const requestId = r._id;
       console.log("=== APPROVE FLOW START ===");
       console.log("Request ID:", requestId);
       console.log("Comment:", approveComment || "Approved");
@@ -105,7 +104,7 @@ export default function TeamRequests() {
     }
     
     try {
-      const requestId = rejectModal.id || rejectModal._id;
+      const requestId = rejectModal._id;
       console.log("=== REJECT FLOW START ===");
       console.log("Request ID:", requestId);
       console.log("Comment:", rejectComment);

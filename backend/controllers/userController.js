@@ -559,8 +559,10 @@ exports.getUserLeaveBalances = async (req, res, next) => {
         if (code === "CL") acc.casual_leave = bal.balance;
         acc.used += Number(bal.used || 0);
         acc.pending += Number(bal.pending || 0);
-        acc.total += Number(bal.total ?? (Number(bal.balance || 0) + Number(bal.used || 0)));
-        acc.remaining += Number(bal.balance || 0);
+        if (code !== "LOP") {
+          acc.total += Number(bal.total ?? (Number(bal.balance || 0) + Number(bal.used || 0)));
+          acc.remaining += Number(bal.balance || 0);
+        }
         return acc;
       },
       { earned_leave: 0, sick_leave: 0, casual_leave: 0, used: 0, pending: 0, total: 0, remaining: 0 }

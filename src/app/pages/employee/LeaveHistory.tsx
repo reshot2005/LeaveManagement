@@ -4,9 +4,8 @@ import { DashboardLayout } from "../../layouts/DashboardLayout";
 import { LeaveStatusBadge } from "../../components/LeaveStatusBadge";
 import { Modal } from "../../components/Modal";
 import { useAuth } from "../../context/AuthContext";
-import { useLeave } from "../../context/LeaveContext";
+import { useLeave, LeaveRequest } from "../../context/LeaveContext";
 import { formatDate, formatDateTime, dateRangeLabel } from "../../utils/dateUtils";
-import type { LeaveRequest } from "../../data/mockData";
 
 export default function LeaveHistory() {
   const { currentUser } = useAuth();
@@ -46,11 +45,11 @@ export default function LeaveHistory() {
   if (!currentUser) return null;
 
   const myRequests = leaveRequests.filter((r) => {
-    const userId = currentUser._id || currentUser.id;
+    const userId = currentUser._id;
     return r.employeeId === userId || r.employee?._id === userId || r.employee?.id === userId;
   });
   
-  console.log("LeaveHistory - Current User ID:", currentUser._id || currentUser.id);
+  console.log("LeaveHistory - Current User ID:", currentUser._id);
   console.log("LeaveHistory - Total Leave Requests:", leaveRequests.length);
   console.log("LeaveHistory - My Requests:", myRequests.length);
   
@@ -155,7 +154,7 @@ export default function LeaveHistory() {
                 <div className="flex gap-2 flex-shrink-0">
                   <button onClick={() => setSelectedRequest(r)} className="text-xs text-blue-600 hover:text-blue-800 font-medium px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors">Details</button>
                   {(r.status === "PENDING" || r.status === "HR_PENDING") && (
-                    <button onClick={() => setCancelConfirm(r.id)} className="text-xs text-red-500 hover:text-red-700 font-medium px-2 py-1 rounded-lg hover:bg-red-50 transition-colors">Cancel</button>
+                    <button onClick={() => setCancelConfirm(r._id)} className="text-xs text-red-500 hover:text-red-700 font-medium px-2 py-1 rounded-lg hover:bg-red-50 transition-colors">Cancel</button>
                   )}
                 </div>
               </div>
@@ -182,9 +181,9 @@ export default function LeaveHistory() {
                 ["From Date", formatDate(selectedRequest.fromDate)],
                 ["To Date", formatDate(selectedRequest.toDate)],
                 ["Total Days", `${selectedRequest.totalDays} days`],
-                ["Half Day", selectedRequest.halfDay ? `Yes (${selectedRequest.halfDaySession})` : "No"],
+                ["Half Day", selectedRequest.halfDay ? `Yes (${selectedRequest.halfDaySession || ''})` : "No"],
                 ["Applied On", formatDateTime(selectedRequest.createdAt)],
-                ["Last Updated", formatDateTime(selectedRequest.updatedAt)],
+                ["Last Updated", formatDateTime(selectedRequest.updatedAt || selectedRequest.createdAt)],
               ].map(([k, v]) => (
                 <div key={k} className="bg-gray-50 rounded-xl p-3">
                   <p className="text-xs text-gray-500">{k}</p>

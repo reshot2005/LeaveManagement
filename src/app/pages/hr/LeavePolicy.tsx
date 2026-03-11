@@ -31,6 +31,19 @@ const POLICY_DEFAULTS = {
     maxConsecutiveDays: 30,
     isActive: true,
   },
+  LOP: {
+    name: "Loss of Pay",
+    code: "LOP",
+    color: "#6B7280",
+    description: "Unpaid leave when balance is exhausted",
+    accrualType: "NONE",
+    accrualRate: 0,
+    accrualPerMonth: 0,
+    yearlyTotal: 0,
+    carryForwardLimit: 0,
+    maxConsecutiveDays: 365,
+    isActive: true,
+  },
 } as const;
 
 const toNumber = (value: unknown, fallback = 0): number => {
@@ -78,9 +91,9 @@ export default function LeavePolicy() {
 
   const policyCards = useMemo(() => {
     const normalized = (leaveTypes || []).map(normalizeLeaveType);
-    const filtered = normalized.filter((lt) => lt.code !== "CL" && lt.isActive !== false && (lt.code === "EL" || lt.code === "SL"));
+    const filtered = normalized.filter((lt) => lt.code !== "CL" && lt.isActive !== false && (lt.code === "EL" || lt.code === "SL" || lt.code === "LOP"));
     const byCode = new Map(filtered.map((lt) => [lt.code, lt]));
-    const requiredCodes: Array<"EL" | "SL"> = ["EL", "SL"];
+    const requiredCodes: Array<"EL" | "SL" | "LOP"> = ["EL", "SL", "LOP"];
 
     for (const code of requiredCodes) {
       if (!byCode.has(code)) {

@@ -285,7 +285,7 @@ export default function TeamCalendar() {
                   </div>
                   <div className="space-y-0.5">
                     {shown.slice(0, 5).map((entry, idx) => (
-                      <p key={`${dateStr}-${entry.userId}-${idx}`} className="text-[10px] text-gray-700 truncate" title={`${entry.name} (${entry.leaveType}) - ${entry.status}`}>
+                      <p key={`${dateStr}-${entry.userId}-${idx}`} className={`text-[10px] truncate ${entry.leaveType === 'LOP' ? 'text-red-600 font-bold' : 'text-gray-700'}`} title={`${entry.name} (${entry.leaveType}) - ${entry.status}`}>
                         • {entry.name} ({entry.leaveType})
                       </p>
                     ))}

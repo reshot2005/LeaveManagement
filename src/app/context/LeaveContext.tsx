@@ -3,9 +3,9 @@ import { leaveService } from "../services/leaveService";
 import { leaveTypeService } from "../services/leaveTypeService";
 import { userService } from "../services/userService";
 
-interface LeaveRequest {
+export interface LeaveRequest {
   _id: string;
-  id?: string;
+  id: string;
   employee: any;
   employeeId?: string;
   employeeName?: string;
@@ -19,16 +19,19 @@ interface LeaveRequest {
   toDate: string;
   totalDays: number;
   halfDay: boolean;
+  halfDaySession?: string;
   reason: string;
   status: 'PENDING' | 'HR_PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
   approvalHistory: any[];
   comments?: string;
   createdAt: string;
+  updatedAt?: string;
+  attachmentUrl?: string;
 }
 
-interface LeaveType {
+export interface LeaveType {
   _id: string;
-  id?: string;
+  id: string;
   name: string;
   code: string;
   color: string;
@@ -47,7 +50,7 @@ interface LeaveType {
 
 interface User {
   _id: string;
-  id?: string;
+  id: string;
   name: string;
   email: string;
   role: string;
@@ -119,6 +122,8 @@ export const LeaveProvider = ({ children }: { children: ReactNode }) => {
         leaveTypeName: leave.leaveType?.name || leave.leaveTypeName || '',
         leaveTypeCode: leave.leaveType?.code || leave.leaveTypeCode || '',
         leaveTypeColor: leave.leaveType?.color || leave.leaveTypeColor || '#3B82F6',
+        halfDaySession: leave.halfDaySession || '',
+        updatedAt: leave.updatedAt || leave.createdAt,
       }));
 
       setLeaveRequests(transformedLeaves);

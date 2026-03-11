@@ -52,9 +52,9 @@ export default function LeaveBalance() {
     <DashboardLayout title="Leave Balance" subtitle="Your current leave entitlements and usage" allowedRoles={["EMPLOYEE", "INTERN", "MANAGER", "HR_ADMIN"]}>
       <div className="grid grid-cols-3 gap-4 mb-6">
         {[
-          { label: "Total Entitled", value: balanceData.reduce((s, b) => s + b.total, 0), color: "border-blue-500", icon: "??" },
-          { label: "Used", value: balanceData.reduce((s, b) => s + b.used, 0), color: "border-amber-500", icon: "??" },
-          { label: "Remaining", value: balanceData.reduce((s, b) => s + b.remaining, 0), color: "border-green-500", icon: "?" },
+          { label: "Total Entitled", value: balanceData.filter(b => b.code !== "LOP").reduce((s, b) => s + b.total, 0), color: "border-blue-500", icon: "??" },
+          { label: "Used", value: balanceData.filter(b => b.code !== "LOP").reduce((s, b) => s + b.used, 0), color: "border-amber-500", icon: "??" },
+          { label: "Remaining", value: balanceData.filter(b => b.code !== "LOP").reduce((s, b) => s + b.remaining, 0), color: "border-green-500", icon: "?" },
         ].map((s) => (
           <div key={s.label} className={`bg-white rounded-2xl shadow-sm border border-gray-100 border-l-4 ${s.color} p-5`}>
             <p className="text-sm text-gray-500">{s.icon} {s.label}</p>
@@ -99,23 +99,31 @@ export default function LeaveBalance() {
                   <h3 className="font-bold text-gray-900 text-sm">{b.name}</h3>
                 </div>
                 <div className="text-right">
-                  <p className="text-3xl font-black" style={{ color: b.remaining <= 2 ? "#EF4444" : "#1E293B" }}>{b.remaining}</p>
-                  <p className="text-xs text-gray-400">Remaining</p>
+                  <p className="text-3xl font-black" style={{ color: b.code === "LOP" ? "#64748B" : (b.remaining <= 2 ? "#EF4444" : "#1E293B") }}>
+                    {b.code === "LOP" ? b.used : b.remaining}
+                  </p>
+                  <p className="text-xs text-gray-400">{b.code === "LOP" ? "Days Used" : "Remaining"}</p>
                 </div>
               </div>
 
               <div className="mb-3">
                 <div className="flex justify-between text-xs text-gray-500 mb-1">
                   <span>Used: {formatDays(b.used)}</span>
-                  <span>Total: {formatDays(b.total)}</span>
+                  {b.code !== "LOP" && <span>Total: {formatDays(b.total)}</span>}
                 </div>
-                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full rounded-full transition-all duration-500" style={{ width: `${100 - b.pct}%`, backgroundColor: b.color, opacity: 0.7 }} />
-                </div>
-                <div className="flex justify-between text-xs mt-1">
-                  <span style={{ color: b.color }} className="font-medium">{100 - b.pct}% used</span>
-                  <span className="text-gray-400">{b.pct}% remaining</span>
-                </div>
+                {b.code !== "LOP" ? (
+                  <>
+                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${100 - b.pct}%`, backgroundColor: b.color, opacity: 0.7 }} />
+                    </div>
+                    <div className="flex justify-between text-xs mt-1">
+                      <span style={{ color: b.color }} className="font-medium">{100 - b.pct}% used</span>
+                      <span className="text-gray-400">{b.pct}% remaining</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden opacity-30" />
+                )}
               </div>
 
               <div className="space-y-1.5 text-xs text-gray-500 border-t border-gray-50 pt-3">
@@ -143,7 +151,9 @@ export default function LeaveBalance() {
                 </div>
                 <div className="flex justify-between">
                   <span>Remaining</span>
-                  <span className="font-medium text-gray-700">{formatDays(b.remaining)}</span>
+                  <span className="font-medium text-gray-700">
+                    {b.code === "LOP" ? "N/A" : formatDays(b.remaining)}
+                  </span>
                 </div>
                 {currentUser.probationStatus && !b.applicableDuringProbation && (
                   <div className="mt-2 bg-amber-50 text-amber-700 px-2 py-1 rounded-lg text-xs font-medium">

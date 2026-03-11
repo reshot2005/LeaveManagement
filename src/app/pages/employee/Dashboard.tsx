@@ -92,11 +92,11 @@ export default function EmployeeDashboard() {
   }
 
   const myRequests = leaveRequests.filter((r) => {
-    const userId = currentUser._id || currentUser.id;
+    const userId = currentUser._id;
     return r.employeeId === userId || r.employee?._id === userId || r.employee?.id === userId;
   });
   
-  console.log("EmployeeDashboard - Current User ID:", currentUser._id || currentUser.id);
+  console.log("EmployeeDashboard - Current User ID:", currentUser._id);
   console.log("EmployeeDashboard - Total Leave Requests:", leaveRequests.length);
   console.log("EmployeeDashboard - My Requests:", myRequests.length);
   
@@ -125,6 +125,7 @@ export default function EmployeeDashboard() {
 
   const accrualLabel = (b: any) => {
     if (b.code === "EL") return `${b.yearlyTotal || 15}/yr`;
+    if (b.code === "LOP") return "No Limit";
     return `${b.accrualRate}/${b.accrualType === "YEARLY" ? "yr" : "mo"}`;
   };
 
@@ -172,13 +173,17 @@ export default function EmployeeDashboard() {
                       <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: b.color }}>{b.code}</span>
                       <span className="text-xs text-gray-400">{accrualLabel(b)}</span>
                     </div>
-                    <p className="text-2xl font-bold text-gray-900">{b.balance}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">{b.name}</p>
+                    <p className="text-2xl font-bold text-gray-900">{b.code === "LOP" ? b.used : b.balance}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{b.code === "LOP" ? "Days Used" : b.name}</p>
                     <div className="mt-2 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all"
-                        style={{ width: `${Math.min(100, (b.balance / Math.max(1, b.accrualRate)) * 100)}%`, backgroundColor: b.color }}
-                      />
+                      {b.code !== "LOP" ? (
+                        <div
+                          className="h-full rounded-full transition-all"
+                          style={{ width: `${Math.min(100, (b.balance / Math.max(1, b.accrualRate)) * 100)}%`, backgroundColor: b.color }}
+                        />
+                      ) : (
+                        <div className="h-full bg-gray-200 opacity-30" />
+                      )}
                     </div>
                   </div>
                 ))

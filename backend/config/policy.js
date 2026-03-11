@@ -20,6 +20,17 @@ const POLICY = {
       carryForwardLimit: 0,
       maxBalance: 12,
     },
+    LOP: {
+      name: "Loss of Pay",
+      code: "LOP",
+      description: "Loss of pay leave for extra time off.",
+      accrualType: "NONE",
+      accrualRate: 0,
+      annualEntitlement: 0,
+      carryForwardLimit: 0,
+      maxConsecutiveDays: 365,
+      allowNegativeBalance: true,
+    },
   },
   CONVERSION: {
     TO_EARNED: {

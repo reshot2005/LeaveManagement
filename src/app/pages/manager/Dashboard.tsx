@@ -45,7 +45,7 @@ export default function ManagerDashboard() {
   }, [refreshAllData]);
   
   if (!currentUser) return null;
-  const currentUserId = (currentUser as any)._id || (currentUser as any).id;
+  const currentUserId = currentUser._id;
 
   // Show loading state while data is being fetched
   if (isLoading) {
@@ -91,7 +91,7 @@ export default function ManagerDashboard() {
 
   const teamMembers = allUsers.filter((u) => u.managerId === currentUserId || (u as any).managerId?._id === currentUserId);
   const teamIds = teamMembers.map((u) => u.id || u._id).filter(Boolean);
-  const teamRequests = leaveRequests.filter((r) => teamIds.includes(r.employeeId));
+  const teamRequests = leaveRequests.filter((r) => r.employeeId && teamIds.includes(r.employeeId));
   const pending = teamRequests.filter((r) => r.status === "PENDING");
   const approved = teamRequests.filter((r) => r.status === "APPROVED").length;
   const rejected = teamRequests.filter((r) => r.status === "REJECTED").length;
@@ -165,12 +165,12 @@ export default function ManagerDashboard() {
               <h2 className="font-bold text-gray-900">Recent Activity</h2>
             </div>
             <div className="space-y-2.5">
-              {teamRequests.filter(r => r.status !== "PENDING").sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()).slice(0, 5).map((r) => (
+              {teamRequests.filter(r => r.status !== "PENDING").sort((a, b) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime()).slice(0, 5).map((r) => (
                 <div key={r.id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors">
                   <span className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style={{ backgroundColor: r.leaveTypeColor }}>{r.leaveTypeCode}</span>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-gray-900">{r.employeeName}</p>
-                    <p className="text-xs text-gray-400">{r.leaveTypeName} · {r.totalDays}d · {formatDate(r.updatedAt)}</p>
+                    <p className="text-xs text-gray-400">{r.leaveTypeName} · {r.totalDays}d · {formatDate(r.updatedAt || r.createdAt)}</p>
                   </div>
                   <LeaveStatusBadge status={r.status} size="sm" />
                 </div>

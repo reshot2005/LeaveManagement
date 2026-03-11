@@ -32,6 +32,21 @@ const CORE_POLICIES = {
     maxConsecutiveDays: 30,
     isActive: true,
   },
+  LOP: {
+    name: "Loss of Pay",
+    code: "LOP",
+    color: "#64748B",
+    description: "Loss of Pay (LOP) for extra time off",
+    accrualType: "NONE",
+    accrualRate: 0,
+    accrualPerMonth: 0,
+    yearlyTotal: 0,
+    carryForwardLimit: 0,
+    maxConsecutiveDays: 365,
+    allowNegativeBalance: true,
+    applicableDuringProbation: true,
+    isActive: true,
+  },
 };
 
 const normalizeLeaveTypePayload = (leaveType) => {
@@ -52,10 +67,11 @@ const normalizeLeaveTypePayload = (leaveType) => {
 };
 
 async function ensureCoreLeaveTypes() {
-  const [earned, sick, casual] = await Promise.all([
+  const [earned, sick, casual, lop] = await Promise.all([
     LeaveType.findOne({ code: "EL" }),
     LeaveType.findOne({ code: "SL" }),
     LeaveType.findOne({ code: "CL" }),
+    LeaveType.findOne({ code: "LOP" }),
   ]);
 
   if (!earned) {
@@ -80,6 +96,15 @@ async function ensureCoreLeaveTypes() {
   } else {
     Object.assign(sick, CORE_POLICIES.SL);
     await sick.save();
+  }
+
+  if (!lop) {
+    await LeaveType.create({
+      ...CORE_POLICIES.LOP,
+    });
+  } else {
+    Object.assign(lop, CORE_POLICIES.LOP);
+    await lop.save();
   }
 
   if (casual) {
