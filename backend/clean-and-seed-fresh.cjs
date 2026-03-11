@@ -33,10 +33,10 @@ async function cleanAndSeedFresh() {
   console.log("📝 Creating fresh data...\n");
 
   // Create HR Admin
-  const hrAdminPassword = await bcrypt.hash("admin123", 10);
+  const hrAdminPassword = await bcrypt.hash("password123", 10);
   const hrAdmin = await mongoose.connection.db.collection("users").insertOne({
     name: "HR Administrator",
-    email: "Subramanya@aksharaenterprises.info",
+    email: "subramanya@aksharaenterprises.info",
     password: hrAdminPassword,
     role: "HR_ADMIN",
     department: "Human Resources",
@@ -53,7 +53,7 @@ async function cleanAndSeedFresh() {
     updatedAt: new Date(),
   });
 
-  console.log("✅ Created HR Admin (Subramanya@aksharaenterprises.info)");
+  console.log("✅ Created HR Admin (subramanya@aksharaenterprises.info)");
 
   // Create John Manager
   const johnPassword = await bcrypt.hash("admin123", 10);
@@ -211,8 +211,8 @@ async function cleanAndSeedFresh() {
 
   console.log("\n🔐 Login Credentials:");
   console.log("\n   HR Admin:");
-  console.log("   Email: Subramanya@aksharaenterprises.info");
-  console.log("   Password: admin123");
+  console.log("   Email: subramanya@aksharaenterprises.info");
+  console.log("   Password: password123");
   console.log("   Role: HR_ADMIN");
 
   console.log("\n   Manager:");
