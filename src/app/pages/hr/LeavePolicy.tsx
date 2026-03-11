@@ -186,9 +186,12 @@ export default function LeavePolicy() {
             <div className="p-5">
               <div className="flex items-start justify-between mb-4">
                 <div>
-                  <span className="inline-block text-white text-xs font-bold px-2.5 py-1 rounded-full mb-1.5" style={{ backgroundColor: lt.color }}>{lt.code}</span>
-                  <h3 className="font-bold text-gray-900">{lt.name}</h3>
-                  <p className="text-xs text-gray-400 mt-0.5">{displayDescription(lt)}</p>
+                  <span className="inline-block text-white text-[10px] tracking-wider uppercase font-black px-2.5 py-1 rounded-full mb-2 shadow-sm" style={{ backgroundColor: lt.color }}>
+                    {lt.code === "LOP" ? "Additional Leave" : lt.code}
+                  </span>
+                  <h3 className="text-lg font-bold text-gray-900 leading-tight">{lt.name}</h3>
+                  {lt.code === "LOP" && <p className="text-sm font-semibold text-gray-500 mb-1">LOP</p>}
+                  <p className="text-xs text-gray-400 mt-1">{displayDescription(lt)}</p>
                 </div>
                 <button onClick={() => startEdit(lt)} disabled={!lt._id && !lt.id}
                   title={!lt._id && !lt.id ? "Fallback policy card (API record missing)" : "Edit leave type"}

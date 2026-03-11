@@ -169,12 +169,17 @@ export default function EmployeeDashboard() {
               ) : (
                 balances.map((b) => (
                   <div key={b.id} className="rounded-xl border border-gray-100 p-3 hover:shadow-sm transition-shadow">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: b.color }}>{b.code}</span>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full text-white shadow-sm" style={{ backgroundColor: b.color }}>
+                        {b.code === "LOP" ? "Additional" : b.code}
+                      </span>
                       <span className="text-xs text-gray-400">{accrualLabel(b)}</span>
                     </div>
-                    <p className="text-2xl font-bold text-gray-900">{b.code === "LOP" ? b.used : b.balance}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">{b.name}</p>
+                    <p className="text-2xl font-bold text-gray-900 leading-none">{b.code === "LOP" ? b.used : b.balance}</p>
+                    <div className="mt-1">
+                      <p className="text-xs font-bold text-gray-900 truncate">{b.name}</p>
+                      {b.code === "LOP" && <p className="text-[10px] font-medium text-gray-400">LOP</p>}
+                    </div>
                     <div className="mt-2 h-1.5 bg-gray-100 rounded-full overflow-hidden">
                       {b.code !== "LOP" ? (
                         <div

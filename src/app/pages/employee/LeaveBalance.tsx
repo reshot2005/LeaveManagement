@@ -95,8 +95,11 @@ export default function LeaveBalance() {
             <div className="p-5">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <span className="inline-block text-white text-xs font-bold px-2.5 py-1 rounded-full mb-1" style={{ backgroundColor: b.color }}>{b.code}</span>
-                  <h3 className="font-bold text-gray-900 text-sm">{b.name}</h3>
+                  <span className="inline-block text-white text-[10px] tracking-wider uppercase font-black px-2.5 py-1 rounded-full mb-2 shadow-sm" style={{ backgroundColor: b.color }}>
+                    {b.code === "LOP" ? "Additional Leave" : b.code}
+                  </span>
+                  <h3 className="text-base font-bold text-gray-900 leading-tight">{b.name}</h3>
+                  {b.code === "LOP" && <p className="text-xs font-semibold text-gray-500 mb-1">LOP</p>}
                 </div>
                 <div className="text-right">
                   <p className="text-3xl font-black" style={{ color: b.code === "LOP" ? "#64748B" : (b.remaining <= 2 ? "#EF4444" : "#1E293B") }}>

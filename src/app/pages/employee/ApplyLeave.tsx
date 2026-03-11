@@ -194,13 +194,13 @@ export default function ApplyLeave() {
                         onClick={() => handleChange("leaveTypeId", lt._id)}
                         className={`p-3 rounded-xl border-2 text-left transition-all ${sel ? "border-blue-500 bg-blue-50" : "border-gray-100 hover:border-gray-200"}`}
                       >
-                        <span className="inline-block text-xs font-bold text-white px-2 py-0.5 rounded-full mb-1.5" style={{ backgroundColor: lt.color }}>
-                          {lt.code}
+                        <span className="inline-block text-[9px] font-black uppercase tracking-wider text-white px-2 py-0.5 rounded-full mb-2 shadow-sm" style={{ backgroundColor: lt.color }}>
+                          {lt.code === "LOP" ? "Additional Leave" : lt.code}
                         </span>
-                        <p className="text-xs font-semibold text-gray-900 leading-tight">{lt.name}</p>
+                        <p className="text-sm font-bold text-gray-900 leading-tight">{lt.name}</p>
                         <p className="text-xs text-gray-500 mt-0.5">
                           {lt.code === "LOP" ? (
-                            <span className="font-bold text-gray-600 italic">LOP</span>
+                            <span className="font-semibold text-gray-400">LOP</span>
                           ) : (
                             <>Balance: <span className={`font-bold ${bal <= 2 ? "text-red-500" : "text-green-600"}`}>{bal}</span></>
                           )}
