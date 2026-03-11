@@ -21,7 +21,7 @@ const POLICY = {
       maxBalance: 12,
     },
     LOP: {
-      name: "LOP",
+      name: "Additional Leave",
       code: "LOP",
       description: "Additional Leave (LOP) for extra time off.",
       accrualType: "NONE",

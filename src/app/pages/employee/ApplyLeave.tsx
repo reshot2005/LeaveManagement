@@ -200,7 +200,7 @@ export default function ApplyLeave() {
                         <p className="text-xs font-semibold text-gray-900 leading-tight">{lt.name}</p>
                         <p className="text-xs text-gray-500 mt-0.5">
                           {lt.code === "LOP" ? (
-                            <span className="font-bold text-gray-600 italic">Additional Leave</span>
+                            <span className="font-bold text-gray-600 italic">LOP</span>
                           ) : (
                             <>Balance: <span className={`font-bold ${bal <= 2 ? "text-red-500" : "text-green-600"}`}>{bal}</span></>
                           )}
@@ -286,7 +286,7 @@ export default function ApplyLeave() {
                     )}
                     {selectedType && selectedType.code === "LOP" && (
                       <p className="text-xs opacity-90 mt-0.5">
-                        This leave will be recorded as <strong>LOP (Additional Leave)</strong>.
+                        This leave will be recorded as <strong>Additional Leave (LOP)</strong>.
                       </p>
                     )}
                     {!hasEnoughBalance && (

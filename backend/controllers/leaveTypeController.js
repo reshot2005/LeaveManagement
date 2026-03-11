@@ -33,7 +33,7 @@ const CORE_POLICIES = {
     isActive: true,
   },
   LOP: {
-    name: "LOP",
+    name: "Additional Leave",
     code: "LOP",
     color: "#64748B",
     description: "Additional Leave (LOP) for extra time off",
