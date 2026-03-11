@@ -32,10 +32,10 @@ const POLICY_DEFAULTS = {
     isActive: true,
   },
   LOP: {
-    name: "Loss of Pay",
+    name: "LOP",
     code: "LOP",
     color: "#6B7280",
-    description: "Unpaid leave when balance is exhausted",
+    description: "Additional Leave (LOP) for extra time off",
     accrualType: "NONE",
     accrualRate: 0,
     accrualPerMonth: 0,

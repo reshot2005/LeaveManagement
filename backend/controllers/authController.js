@@ -127,6 +127,7 @@ exports.login = async (req, res, next) => {
       if (process.env.NODE_ENV !== "production") console.log(`Login failed: User not found for ${normalizedEmail}`);
       return next(new AppError("Invalid email or password.", 401));
     }
+
     if (user.isAccountLocked()) {
       logSecurityEvent(SECURITY_EVENTS.AUTH_ACCOUNT_LOCKED, { email: normalizedEmail, ip: req.ip });
       return next(new AppError("Account temporarily locked after repeated login failures. Try again later.", 423));
@@ -134,9 +135,11 @@ exports.login = async (req, res, next) => {
 
     // First try exact password, then a trimmed fallback to tolerate accidental spaces.
     let isPasswordValid = await user.comparePassword(rawPassword);
+
     if (!isPasswordValid && trimmedPassword !== rawPassword) {
       isPasswordValid = await user.comparePassword(trimmedPassword);
     }
+
     if (!isPasswordValid) {
       await user.registerFailedLogin();
       logSecurityEvent(SECURITY_EVENTS.AUTH_LOGIN_FAILED, { email: normalizedEmail, reason: "invalid_password", ip: req.ip });

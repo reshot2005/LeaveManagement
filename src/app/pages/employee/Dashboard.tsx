@@ -174,7 +174,7 @@ export default function EmployeeDashboard() {
                       <span className="text-xs text-gray-400">{accrualLabel(b)}</span>
                     </div>
                     <p className="text-2xl font-bold text-gray-900">{b.code === "LOP" ? b.used : b.balance}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">{b.code === "LOP" ? "Days Used" : b.name}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{b.name}</p>
                     <div className="mt-2 h-1.5 bg-gray-100 rounded-full overflow-hidden">
                       {b.code !== "LOP" ? (
                         <div

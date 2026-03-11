@@ -102,7 +102,7 @@ export default function LeaveBalance() {
                   <p className="text-3xl font-black" style={{ color: b.code === "LOP" ? "#64748B" : (b.remaining <= 2 ? "#EF4444" : "#1E293B") }}>
                     {b.code === "LOP" ? b.used : b.remaining}
                   </p>
-                  <p className="text-xs text-gray-400">{b.code === "LOP" ? "Days Used" : "Remaining"}</p>
+                  <p className="text-xs text-gray-400">{b.code === "LOP" ? "Used" : "Remaining"}</p>
                 </div>
               </div>
 

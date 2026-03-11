@@ -33,10 +33,10 @@ const CORE_POLICIES = {
     isActive: true,
   },
   LOP: {
-    name: "Loss of Pay",
+    name: "LOP",
     code: "LOP",
     color: "#64748B",
-    description: "Loss of Pay (LOP) for extra time off",
+    description: "Additional Leave (LOP) for extra time off",
     accrualType: "NONE",
     accrualRate: 0,
     accrualPerMonth: 0,
