@@ -109,15 +109,15 @@ exports.applyLeave = async (req, res, next) => {
     });
     if (overlap) return next(new AppError("You have an existing leave request overlapping with these dates.", 409));
 
-    // Check if 10 or more people are already on leave during the requested dates
+    // Check if 50 or more people are already on leave during the requested dates
     const overlappingLeaves = await LeaveRequest.countDocuments({
       status: { $in: ["PENDING", "HR_PENDING", "APPROVED"] },
       fromDate: { $lte: new Date(toDate) },
       toDate: { $gte: new Date(fromDate) },
     });
 
-    if (overlappingLeaves >= 10) {
-      return next(new AppError("Cannot apply for leave. Maximum of 10 people can be on leave at the same time. Please choose different dates.", 400));
+    if (overlappingLeaves >= 50) {
+      return next(new AppError("Cannot apply for leave. Maximum of 50 people can be on leave at the same time. Please choose different dates.", 400));
     }
 
     // Balance check

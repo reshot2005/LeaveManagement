@@ -5,7 +5,7 @@ async function getActiveCalendar() {
   if (!calendar) {
     calendar = await CalendarConfig.create({
       name: "Default Calendar",
-      weekendDays: [0, 6],
+      weekendDays: [0], // Saturday (6) is a working day; only Sunday (0) is a weekend
       holidays: [],
       isActive: true,
     });
@@ -20,7 +20,7 @@ function toDateKey(date) {
 async function calculateWorkingDaysWithCalendar(startDate, endDate, options = {}) {
   const { excludeWeekends = true, excludePublicHolidays = true } = options;
   const calendar = await getActiveCalendar();
-  const weekendDays = new Set(calendar.weekendDays || [0, 6]);
+  const weekendDays = new Set(calendar.weekendDays || [0]); // Saturday (6) is a working day; only Sunday (0) is a weekend
   const holidayMap = new Map(
     (calendar.holidays || []).map((h) => [h.date, Boolean(h.isWorkingDayOverride)])
   );

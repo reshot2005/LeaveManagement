@@ -118,7 +118,7 @@ async function ensureCalendarConfig() {
   if (!existing) {
     await CalendarConfig.create({
       name: "Default Calendar",
-      weekendDays: [0, 6],
+      weekendDays: [0], // Saturday (6) is a working day; only Sunday (0) is a weekend
       holidays: [],
       monthlyCreditDay: 1,
       timezone: process.env.ORG_TIMEZONE || "Asia/Kolkata",

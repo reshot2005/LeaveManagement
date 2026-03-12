@@ -8,7 +8,7 @@ export const calculateWorkingDays = (from: string, to: string, halfDay = false):
   const cur = new Date(start);
   while (cur <= end) {
     const day = cur.getDay();
-    if (day !== 0 && day !== 6) count++;
+    if (day !== 0) count++; // Saturday (6) is a working day; only Sunday (0) is skipped
     cur.setDate(cur.getDate() + 1);
   }
   return count;

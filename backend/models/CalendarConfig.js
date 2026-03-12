@@ -12,7 +12,7 @@ const holidaySchema = new mongoose.Schema(
 const calendarConfigSchema = new mongoose.Schema(
   {
     name: { type: String, default: "Default Calendar", required: true },
-    weekendDays: { type: [Number], default: [0, 6] }, // 0 Sunday, 6 Saturday
+    weekendDays: { type: [Number], default: [0] }, // 0 Sunday only; Saturday (6) is a working day
     holidays: { type: [holidaySchema], default: [] },
     monthlyCreditDay: { type: Number, default: 1, min: 1, max: 28 },
     timezone: { type: String, default: "Asia/Kolkata" },
