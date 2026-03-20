@@ -61,7 +61,7 @@ export default function AllRequests() {
     const interval = setInterval(() => {
       console.log("AllRequests - Auto-refreshing data");
       refreshAllData();
-    }, 30000); // 30 seconds
+    }, 10000); // 10 seconds for near real-time updates
 
     // Listen for leave data updates from other components
     const handleLeaveUpdate = () => {
@@ -244,14 +244,15 @@ export default function AllRequests() {
     PENDING: leaveRequests.filter(r => r.status === "PENDING").length,
     HR_PENDING: leaveRequests.filter(r => r.status === "HR_PENDING").length,
     APPROVED: leaveRequests.filter(r => r.status === "APPROVED").length,
-    REJECTED: leaveRequests.filter(r => r.status === "REJECTED").length
+    REJECTED: leaveRequests.filter(r => r.status === "REJECTED").length,
+    CANCELLED: leaveRequests.filter(r => r.status === "CANCELLED").length
   };
 
   return (
     <DashboardLayout title="All Leave Requests" subtitle="System-wide leave request management" allowedRoles={["HR_ADMIN", "MANAGER"]}>
       {/* Tabs */}
-      <div className="flex gap-1 p-1 bg-gray-100 rounded-2xl mb-5 w-fit">
-        {["ALL", "PENDING", "HR_PENDING", "APPROVED", "REJECTED"].map(s => (
+      <div className="flex gap-1 p-1 bg-gray-100 rounded-2xl mb-5 w-fit flex-wrap">
+        {["ALL", "PENDING", "HR_PENDING", "APPROVED", "REJECTED", "CANCELLED"].map(s => (
           <button key={s} onClick={() => setStatusFilter(s)}
             className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${statusFilter === s ? "bg-white shadow-sm text-gray-900" : "text-gray-500 hover:text-gray-700"}`}>
             {s} ({counts[s as keyof typeof counts]})
