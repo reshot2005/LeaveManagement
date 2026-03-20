@@ -267,7 +267,7 @@ exports.applyLeave = async (req, res, next) => {
  */
 exports.getMyLeaves = async (req, res, next) => {
   try {
-    const { status, leaveTypeId, page = 1, limit = 20 } = req.query;
+    const { status, leaveTypeId } = req.query;
     const query = { employee: req.user._id };
     if (status) query.status = status;
     if (leaveTypeId) query.leaveType = leaveTypeId;
@@ -276,15 +276,13 @@ exports.getMyLeaves = async (req, res, next) => {
     const leaves = await LeaveRequest.find(query)
       .populate("employee", "name email department designation avatar probationStatus leaveBalances")
       .populate("leaveType", "name code color")
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(parseInt(limit));
+      .sort({ createdAt: -1 });
 
     res.json({
       success: true,
       count: leaves.length,
       total,
-      pages: Math.ceil(total / limit),
+      pages: 1,
       data: { leaves: leaves.map(mapLeaveForResponse) },
     });
   } catch (err) { next(err); }
@@ -310,7 +308,7 @@ exports.getTeamLeaves = async (req, res, next) => {
  */
 exports.getAllLeaves = async (req, res, next) => {
   try {
-    const { status, department, leaveTypeId, page = 1, limit = 50, startDate, endDate } = req.query;
+    const { status, department, leaveTypeId, startDate, endDate } = req.query;
     const query = {};
     if (status) query.status = status;
     if (leaveTypeId) query.leaveType = leaveTypeId;
@@ -318,17 +316,17 @@ exports.getAllLeaves = async (req, res, next) => {
 
     let pipeline = [{ $match: query }, { $lookup: { from: "users", localField: "employee", foreignField: "_id", as: "employeeData" } }, { $unwind: "$employeeData" }];
     if (department) pipeline.push({ $match: { "employeeData.department": department } });
-    pipeline.push({ $sort: { createdAt: -1 } }, { $skip: (page - 1) * limit }, { $limit: parseInt(limit) });
+    pipeline.push({ $sort: { createdAt: -1 } });
 
     const [leaves, total] = await Promise.all([
-      LeaveRequest.find(query).populate("employee", "name email role department designation avatar probationStatus leaveBalances").populate("leaveType", "name code color requiresDocument").sort({ createdAt: -1 }).skip((page - 1) * limit).limit(parseInt(limit)),
+      LeaveRequest.find(query).populate("employee", "name email role department designation avatar probationStatus leaveBalances").populate("leaveType", "name code color requiresDocument").sort({ createdAt: -1 }),
       LeaveRequest.countDocuments(query),
     ]);
     res.json({
       success: true,
       count: leaves.length,
       total,
-      pages: Math.ceil(total / limit),
+      pages: 1,
       data: { leaves: leaves.map(mapLeaveForResponse) },
     });
   } catch (err) { next(err); }
