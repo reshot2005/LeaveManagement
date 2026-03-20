@@ -239,15 +239,6 @@ export default function AllRequests() {
     toast.success("CSV exported successfully");
   };
 
-  const counts = {
-    ALL: leaveRequests.length,
-    PENDING: leaveRequests.filter(r => r.status === "PENDING").length,
-    HR_PENDING: leaveRequests.filter(r => r.status === "HR_PENDING").length,
-    APPROVED: leaveRequests.filter(r => r.status === "APPROVED").length,
-    REJECTED: leaveRequests.filter(r => r.status === "REJECTED").length,
-    CANCELLED: leaveRequests.filter(r => r.status === "CANCELLED").length
-  };
-
   return (
     <DashboardLayout title="All Leave Requests" subtitle="System-wide leave request management" allowedRoles={["HR_ADMIN", "MANAGER"]}>
       {/* Tabs */}
@@ -255,7 +246,7 @@ export default function AllRequests() {
         {["ALL", "PENDING", "HR_PENDING", "APPROVED", "REJECTED", "CANCELLED"].map(s => (
           <button key={s} onClick={() => setStatusFilter(s)}
             className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${statusFilter === s ? "bg-white shadow-sm text-gray-900" : "text-gray-500 hover:text-gray-700"}`}>
-            {s} ({counts[s as keyof typeof counts]})
+            {s}
           </button>
         ))}
       </div>
