@@ -84,6 +84,11 @@ export default function LeaveBalance() {
               <td className="py-2 pr-4 font-semibold text-gray-900">Sick Leave</td>
               <td className="py-2 font-bold text-emerald-700">{formatDays(balanceSummary.sick_leave)}</td>
             </tr>
+            <tr>
+              <td className="py-2 pr-4 font-mono text-xs text-gray-600">flexi_leave</td>
+              <td className="py-2 pr-4 font-semibold text-gray-900">Flexi Leave</td>
+              <td className="py-2 font-bold text-violet-700">{formatDays(balanceSummary.flexi_leave)}</td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -133,7 +138,11 @@ export default function LeaveBalance() {
                 <div className="flex justify-between">
                   <span>Accrual</span>
                   <span className="font-medium text-gray-700">
-                    {b.code === "EL" ? formatDays(b.yearlyTotal, "/year") : formatDays(b.accrualRate, b.accrualType === "YEARLY" ? "/year" : "/month")}
+                    {b.code === "EL"
+                      ? formatDays(b.yearlyTotal, "/year")
+                      : b.code === "FLEXI"
+                        ? formatDays(b.total, "/year")
+                        : formatDays(b.accrualRate, b.accrualType === "YEARLY" ? "/year" : "/month")}
                   </span>
                 </div>
                 <div className="flex justify-between">

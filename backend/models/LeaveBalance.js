@@ -10,6 +10,7 @@ const leaveBalanceSchema = new mongoose.Schema(
     earned_leave: { type: Number, default: 0, min: 0 },
     sick_leave: { type: Number, default: 0, min: 0 },
     casual_leave: { type: Number, default: 0, min: 0 },
+    flexi_leave: { type: Number, default: 0, min: 0 },
     updated_at: { type: Date, default: Date.now },
   },
   { timestamps: true }

@@ -7,6 +7,7 @@ import { useLeave } from "../../context/LeaveContext";
 import { getDaysInMonth, getFirstDayOfMonth, getMonthName, toInputDate } from "../../utils/dateUtils";
 import { calendarService } from "../../services/calendarService";
 import { holidayService } from "../../services/holidayService";
+import { flexiHolidayService, type FlexiHolidayItem } from "../../services/flexiHolidayService";
 
 const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -50,6 +51,7 @@ export default function TeamCalendar() {
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [departmentFilter, setDepartmentFilter] = useState<string>("ALL");
   const [holidays, setHolidays] = useState<Array<{ date: string; title: string }>>([]);
+  const [flexiHolidays, setFlexiHolidays] = useState<FlexiHolidayItem[]>([]);
   const [holidayDate, setHolidayDate] = useState("");
   const [holidayName, setHolidayName] = useState("");
   const [holidaySaving, setHolidaySaving] = useState(false);
@@ -103,11 +105,16 @@ export default function TeamCalendar() {
     if (!currentUser) return;
     const loadHolidays = async () => {
       try {
-        const response = await holidayService.list({ start: monthRange.start, end: monthRange.end });
-        setHolidays(response?.items || []);
+        const [holidayResponse, flexiResponse] = await Promise.all([
+          holidayService.list({ start: monthRange.start, end: monthRange.end }),
+          flexiHolidayService.list({ start: monthRange.start, end: monthRange.end }),
+        ]);
+        setHolidays(holidayResponse?.items || []);
+        setFlexiHolidays(flexiResponse?.items || []);
       } catch (error) {
         console.error("Failed to load holidays:", error);
         setHolidays([]);
+        setFlexiHolidays([]);
       }
     };
     loadHolidays();
@@ -145,6 +152,7 @@ export default function TeamCalendar() {
   const daysInMonth = getDaysInMonth(year, month);
   const firstDay = getFirstDayOfMonth(year, month);
   const holidaySet = new Set((holidays || []).map((h) => h.date));
+  const flexiHolidayMap = new Map((flexiHolidays || []).map((h) => [h.date, h]));
   const departments = [...new Set(allUsers.map((u: any) => u.department).filter(Boolean))].sort();
 
   const navigateMonth = (dir: 1 | -1) => {
@@ -273,12 +281,14 @@ export default function TeamCalendar() {
               const isToday = dateStr === toInputDate(new Date());
               const isSelected = selectedDay === dateStr;
               const isHoliday = holidaySet.has(dateStr);
+              const flexiHoliday = flexiHolidayMap.get(dateStr);
+              const hasFlexiLeave = shown.some((entry) => entry.leaveType === "FLEXI");
 
               return (
                 <div
                   key={dateStr}
                   onClick={() => setSelectedDay(isSelected ? null : dateStr)}
-                  className={`min-h-[108px] p-1.5 border-r border-b border-gray-50 cursor-pointer transition-colors ${isWeekend ? "bg-gray-50/50" : "bg-white hover:bg-blue-50/30"} ${isHoliday ? "bg-red-50/60" : ""} ${isSelected ? "bg-blue-50 ring-2 ring-blue-400 ring-inset" : ""}`}
+                  className={`min-h-[108px] p-1.5 border-r border-b border-gray-50 cursor-pointer transition-colors ${isWeekend ? "bg-gray-50/50" : "bg-white hover:bg-blue-50/30"} ${isHoliday ? "bg-red-50/60" : ""} ${flexiHoliday ? "bg-violet-50/70" : ""} ${isSelected ? "bg-blue-50 ring-2 ring-blue-400 ring-inset" : ""}`}
                 >
                   <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold mx-auto mb-1 ${isToday ? "bg-[#1E3A8A] text-white" : isWeekend ? "text-gray-400" : "text-gray-700"}`}>
                     {day}
@@ -301,6 +311,7 @@ export default function TeamCalendar() {
                       </button>
                     )}
                     {isHoliday && <p className="text-[9px] text-red-600 text-center font-semibold">Holiday</p>}
+                    {flexiHoliday && <p className="text-[9px] text-violet-700 text-center font-semibold">{hasFlexiLeave ? "Flexi Leave / Holiday" : "Flexi Holiday"}</p>}
                   </div>
                 </div>
               );
@@ -317,7 +328,15 @@ export default function TeamCalendar() {
               {loadingDay ? (
                 <p className="text-xs text-gray-500">Loading day details...</p>
               ) : (selectedDayDetails?.items || []).length === 0 ? (
-                <p className="text-xs text-gray-400">No leave applications on this day</p>
+                <div className="space-y-2">
+                  <p className="text-xs text-gray-400">No leave applications on this day</p>
+                  {flexiHolidayMap.get(selectedDay) && (
+                    <div className="rounded-lg border border-violet-100 bg-violet-50 px-3 py-2">
+                      <p className="text-xs font-semibold text-violet-900">{flexiHolidayMap.get(selectedDay)?.title}</p>
+                      <p className="text-[11px] text-violet-700">Approved Flexi Holiday</p>
+                    </div>
+                  )}
+                </div>
               ) : (
                 <div className="space-y-2 max-h-[360px] overflow-y-auto">
                   {selectedDayDetails?.items?.slice(0, 30).map((item, idx) => (
@@ -343,8 +362,23 @@ export default function TeamCalendar() {
               <div className="flex justify-between"><span className="text-gray-500">Dates with Applications</span><span className="font-bold text-gray-900">{monthStats.activeDates}</span></div>
               <div className="flex justify-between"><span className="text-gray-500">Total Applicants</span><span className="font-bold text-gray-900">{monthStats.totalApplicants}</span></div>
               <div className="flex justify-between"><span className="text-gray-500">Calendar Capped Count</span><span className="font-bold text-gray-900">{monthStats.cappedApplicants}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Flexi Holidays</span><span className="font-bold text-violet-700">{flexiHolidays.length}</span></div>
             </div>
           </div>
+
+          {flexiHolidays.length > 0 && (
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+              <h3 className="font-bold text-gray-900 mb-3 text-sm">Approved Flexi Holidays</h3>
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {flexiHolidays.map((holiday) => (
+                  <div key={holiday.date} className="rounded-lg border border-violet-100 bg-violet-50/70 px-3 py-2">
+                    <p className="text-xs font-semibold text-gray-900">{holiday.title}</p>
+                    <p className="text-[11px] text-violet-700">{holiday.date} • {holiday.day}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {isHRAdmin && (
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">

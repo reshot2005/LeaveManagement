@@ -35,9 +35,11 @@ interface LeaveBalance {
   earned_leave?: number;
   sick_leave?: number;
   casual_leave?: number;
+  flexi_leave?: number;
   earnedLeave?: number;
   sickLeave?: number;
   casualLeave?: number;
+  flexiLeave?: number;
 }
 
 interface Notification {
@@ -71,6 +73,7 @@ interface AuthContextType {
     earned_leave: number;
     sick_leave: number;
     casual_leave: number;
+    flexi_leave: number;
   };
   fetchLeaveBalances: () => Promise<void>;
 }
@@ -83,7 +86,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [leaveBalances, setLeaveBalances] = useState<LeaveBalance[]>([]);
   const [creditInfo, setCreditInfo] = useState<{ lastCreditedMonth: string | null; nextCreditDate: string | null; creditDay: number } | null>(null);
-  const [balanceSummary, setBalanceSummary] = useState({ earned_leave: 0, sick_leave: 0, casual_leave: 0 });
+  const [balanceSummary, setBalanceSummary] = useState({ earned_leave: 0, sick_leave: 0, casual_leave: 0, flexi_leave: 0 });
 
   useEffect(() => {
     const initAuth = async () => {
@@ -158,6 +161,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         earned_leave: Number(response.data.earned_leave || 0),
         sick_leave: Number(response.data.sick_leave || 0),
         casual_leave: Number(response.data.casual_leave || 0),
+        flexi_leave: Number(response.data.flexi_leave || 0),
       });
     } catch (error) {
       console.error("Failed to fetch leave balances:", error);
@@ -209,7 +213,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setNotifications([]);
       setLeaveBalances([]);
       setCreditInfo(null);
-      setBalanceSummary({ earned_leave: 0, sick_leave: 0, casual_leave: 0 });
+      setBalanceSummary({ earned_leave: 0, sick_leave: 0, casual_leave: 0, flexi_leave: 0 });
     }
   };
 

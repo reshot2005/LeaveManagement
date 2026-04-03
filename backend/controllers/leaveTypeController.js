@@ -47,6 +47,23 @@ const CORE_POLICIES = {
     applicableDuringProbation: true,
     isActive: true,
   },
+  FLEXI: {
+    name: "Flexi Leave",
+    code: "FLEXI",
+    color: "#8B5CF6",
+    description: "Flexi Holiday leave for approved festival dates only",
+    accrualType: "YEARLY",
+    accrualRate: POLICY.LEAVE_TYPES.FLEXI.annualEntitlement,
+    accrualPerMonth: 0,
+    yearlyTotal: POLICY.LEAVE_TYPES.FLEXI.annualEntitlement,
+    carryForwardLimit: 0,
+    maxConsecutiveDays: 1,
+    allowNegativeBalance: false,
+    applicableDuringProbation: true,
+    excludeWeekends: false,
+    excludePublicHolidays: false,
+    isActive: true,
+  },
 };
 
 const normalizeLeaveTypePayload = (leaveType) => {
@@ -67,11 +84,12 @@ const normalizeLeaveTypePayload = (leaveType) => {
 };
 
 async function ensureCoreLeaveTypes() {
-  const [earned, sick, casual, lop] = await Promise.all([
+  const [earned, sick, casual, lop, flexi] = await Promise.all([
     LeaveType.findOne({ code: "EL" }),
     LeaveType.findOne({ code: "SL" }),
     LeaveType.findOne({ code: "CL" }),
     LeaveType.findOne({ code: "LOP" }),
+    LeaveType.findOne({ code: "FLEXI" }),
   ]);
 
   if (!earned) {
@@ -105,6 +123,15 @@ async function ensureCoreLeaveTypes() {
   } else {
     Object.assign(lop, CORE_POLICIES.LOP);
     await lop.save();
+  }
+
+  if (!flexi) {
+    await LeaveType.create({
+      ...CORE_POLICIES.FLEXI,
+    });
+  } else {
+    Object.assign(flexi, CORE_POLICIES.FLEXI);
+    await flexi.save();
   }
 
   if (casual) {
@@ -255,6 +282,19 @@ exports.updateLeaveType = async (req, res, next) => {
       leaveType.isActive = true;
     } else if (leaveType.code === "CL") {
       leaveType.isActive = false;
+    } else if (leaveType.code === "FLEXI") {
+      leaveType.name = "Flexi Leave";
+      leaveType.description = "Flexi Holiday leave for approved festival dates only";
+      leaveType.accrualType = "YEARLY";
+      leaveType.accrualRate = 2;
+      leaveType.accrualPerMonth = 0;
+      leaveType.yearlyTotal = 2;
+      leaveType.carryForwardLimit = 0;
+      leaveType.maxConsecutiveDays = 1;
+      leaveType.allowNegativeBalance = false;
+      leaveType.excludeWeekends = false;
+      leaveType.excludePublicHolidays = false;
+      leaveType.isActive = true;
     }
 
     await leaveType.save();

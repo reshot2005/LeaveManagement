@@ -15,7 +15,7 @@ export interface EmployeeData {
   email: string;
   department: string;
   designation: string;
-  role: "EMPLOYEE" | "MANAGER" | "HR_ADMIN";
+  role: "EMPLOYEE" | "INTERN" | "MANAGER" | "HR_ADMIN";
   joinDate: string;
   isActive: boolean;
   probationStatus?: boolean;
@@ -40,6 +40,7 @@ interface EmployeeDirectoryTableProps {
 // Role badge styling configuration
 const roleStyles = {
   EMPLOYEE: "bg-green-100 text-green-700",
+  INTERN: "bg-cyan-100 text-cyan-700",
   MANAGER: "bg-blue-100 text-blue-700",
   HR_ADMIN: "bg-purple-100 text-purple-700",
 };
@@ -112,6 +113,11 @@ export const EmployeeDirectoryTable: React.FC<EmployeeDirectoryTableProps> = ({
                   Sick Leave
                 </th>
               )}
+              {showLeaveBalances && (
+                <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wide">
+                  Flexi Leave
+                </th>
+              )}
               <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wide">
                 Actions
               </th>
@@ -121,7 +127,7 @@ export const EmployeeDirectoryTable: React.FC<EmployeeDirectoryTableProps> = ({
             {employees.length === 0 ? (
               <tr>
                 <td
-                  colSpan={showLeaveBalances ? 8 : 6}
+                  colSpan={showLeaveBalances ? 9 : 6}
                   className="px-4 py-12 text-center text-gray-400"
                 >
                   <p className="text-sm font-medium">No employees found</p>
@@ -215,6 +221,16 @@ export const EmployeeDirectoryTable: React.FC<EmployeeDirectoryTableProps> = ({
                       <div className="flex flex-wrap gap-1">
                         <span className="text-sm font-bold text-red-600">
                           {employee.leaveBalances?.find((b) => b.code === "SL")?.balance ?? 0}
+                        </span>
+                      </div>
+                    </td>
+                  )}
+
+                  {showLeaveBalances && (
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap gap-1">
+                        <span className="text-sm font-bold text-violet-700">
+                          {employee.leaveBalances?.find((b) => b.code === "FLEXI")?.balance ?? 0}
                         </span>
                       </div>
                     </td>

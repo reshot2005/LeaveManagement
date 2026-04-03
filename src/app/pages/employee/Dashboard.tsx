@@ -7,10 +7,12 @@ import { LeaveStatusBadge } from "../../components/LeaveStatusBadge";
 import { useAuth } from "../../context/AuthContext";
 import { useLeave } from "../../context/LeaveContext";
 import { formatDate, dateRangeLabel } from "../../utils/dateUtils";
+import { flexiHolidayService, type FlexiHolidayItem } from "../../services/flexiHolidayService";
 
 export default function EmployeeDashboard() {
   const { currentUser, leaveBalances } = useAuth();
   const { leaveRequests, leaveTypes, isLoading, refreshAllData } = useLeave();
+  const [upcomingFlexiHolidays, setUpcomingFlexiHolidays] = React.useState<FlexiHolidayItem[]>([]);
 
   // Ensure data is loaded when component mounts
   useEffect(() => {
@@ -40,6 +42,16 @@ export default function EmployeeDashboard() {
       window.removeEventListener('refreshBalances', handleBalanceUpdate);
     };
   }, [refreshAllData]);
+
+  useEffect(() => {
+    const today = new Date();
+    const start = today.toISOString().slice(0, 10);
+    const end = new Date(today.getFullYear(), 11, 31).toISOString().slice(0, 10);
+    flexiHolidayService
+      .list({ start, end })
+      .then((response) => setUpcomingFlexiHolidays((response.items || []).slice(0, 4)))
+      .catch(() => setUpcomingFlexiHolidays([]));
+  }, []);
 
   // Re-render when leave data changes
   useEffect(() => {
@@ -125,6 +137,7 @@ export default function EmployeeDashboard() {
 
   const accrualLabel = (b: any) => {
     if (b.code === "EL") return `${b.yearlyTotal || 15}/yr`;
+    if (b.code === "FLEXI") return `${b.balance + b.used}/yr`;
     if (b.code === "LOP") return "No Limit";
     return `${b.accrualRate}/${b.accrualType === "YEARLY" ? "yr" : "mo"}`;
   };
@@ -262,20 +275,20 @@ export default function EmployeeDashboard() {
           )}
 
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-            <h3 className="font-bold text-gray-900 mb-3">Upcoming Holidays</h3>
-            {[
-              { date: "Jun 19", name: "Juneteenth" },
-              { date: "Jul 4", name: "Independence Day" },
-              { date: "Sep 1", name: "Labor Day" },
-            ].map((h) => (
-              <div key={h.name} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
+            <h3 className="font-bold text-gray-900 mb-3">Upcoming Flexi Holidays</h3>
+            {(upcomingFlexiHolidays.length > 0 ? upcomingFlexiHolidays : []).map((h) => (
+              <div key={h.date} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
                 <div className="w-10 h-10 bg-blue-50 rounded-lg flex flex-col items-center justify-center flex-shrink-0">
-                  <span className="text-[9px] text-blue-600 font-bold uppercase leading-none">{h.date.split(" ")[0]}</span>
-                  <span className="text-sm font-bold text-blue-700 leading-none">{h.date.split(" ")[1]}</span>
+                  <span className="text-[9px] text-blue-600 font-bold uppercase leading-none">{new Date(`${h.date}T12:00:00`).toLocaleString("en-US", { month: "short" })}</span>
+                  <span className="text-sm font-bold text-blue-700 leading-none">{new Date(`${h.date}T12:00:00`).toLocaleString("en-US", { day: "2-digit" })}</span>
                 </div>
-                <p className="text-sm text-gray-700 font-medium">{h.name}</p>
+                <div>
+                  <p className="text-sm text-gray-700 font-medium">{h.title}</p>
+                  <p className="text-xs text-violet-700">Flexi Holiday • {h.day}</p>
+                </div>
               </div>
             ))}
+            {upcomingFlexiHolidays.length === 0 && <p className="text-sm text-gray-400">No upcoming Flexi Holidays this year.</p>}
           </div>
         </div>
       </div>

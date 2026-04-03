@@ -35,7 +35,10 @@ function calculateInitialBalance(user, leaveType) {
   if (isIntern) {
     if (code === "EL") return Number(POLICY.INTERN.earnedAccrualPerMonth || 0);
     if (code === "SL") return Number(POLICY.INTERN.sickAccrualPerMonth || 0);
+    if (code === "FLEXI") return 1;
   }
+
+  if (code === "FLEXI") return 2;
 
   if (isJoinedAfter15th(user)) {
     if (code === "EL") return Number(POLICY.JOINING_MONTH_AFTER_15TH.earnedAccrual || 0);
@@ -175,6 +178,7 @@ async function getUserBalances(userId) {
     const earnedLeave = code === "EL" ? bal.balance : (balanceDoc?.earned_leave || 0);
     const sickLeave = code === "SL" ? bal.balance : (balanceDoc?.sick_leave || 0);
     const casualLeave = code === "CL" ? bal.balance : (balanceDoc?.casual_leave || 0);
+    const flexiLeave = code === "FLEXI" ? bal.balance : (balanceDoc?.flexi_leave || 0);
     const used = Number(bal.used || 0);
     const pending = Number(bal.pending || 0);
     const balance = Number(bal.balance || 0);
@@ -200,9 +204,11 @@ async function getUserBalances(userId) {
       earned_leave: earnedLeave,
       sick_leave: sickLeave,
       casual_leave: casualLeave,
+      flexi_leave: flexiLeave,
       earnedLeave,
       sickLeave,
       casualLeave,
+      flexiLeave,
     };
   });
 }

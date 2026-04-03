@@ -31,6 +31,17 @@ const POLICY = {
       maxConsecutiveDays: 365,
       allowNegativeBalance: true,
     },
+    FLEXI: {
+      name: "Flexi Leave",
+      code: "FLEXI",
+      description: "Flexi Holiday leave for approved festival dates only.",
+      accrualType: "YEARLY",
+      accrualRate: 2,
+      annualEntitlement: 2,
+      carryForwardLimit: 0,
+      maxConsecutiveDays: 1,
+      allowNegativeBalance: false,
+    },
   },
   CONVERSION: {
     TO_EARNED: {

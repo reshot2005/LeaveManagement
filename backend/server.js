@@ -25,6 +25,8 @@ const managerRoutes = require("./routes/managerRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const calendarRoutes = require("./routes/calendarRoutes");
 const holidayRoutes = require("./routes/holiday.routes");
+const flexiHolidayRoutes = require("./routes/flexiHolidayRoutes");
+const { ensureFlexiHolidaysSeeded } = require("./services/flexiHolidayService");
 const { getDiagnostics: getEmailDiagnostics, verifyTransporter } = require("./services/notificationMailer");
 
 const { creditMonthlyLeaves } = require("./services/monthlyCredit");
@@ -36,6 +38,9 @@ const PORT = process.env.PORT || 5000;
 getRequiredJwtSecret();
 
 connectDB();
+ensureFlexiHolidaysSeeded().catch((error) => {
+  console.error("Failed to seed flexi holidays:", error.message);
+});
 
 app.disable("x-powered-by");
 app.use(
@@ -108,6 +113,7 @@ app.use("/api/managers", managerRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/calendar", calendarRoutes);
 app.use("/api/holidays", holidayRoutes);
+app.use("/api/flexi-holidays", flexiHolidayRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ success: false, message: `Route ${req.originalUrl} not found` });

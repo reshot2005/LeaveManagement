@@ -5,6 +5,7 @@ import { DashboardLayout } from "../../layouts/DashboardLayout";
 import { useAuth } from "../../context/AuthContext";
 import { useLeave } from "../../context/LeaveContext";
 import { calculateWorkingDays, getTodayStr } from "../../utils/dateUtils";
+import { flexiHolidayService, type FlexiHolidayItem } from "../../services/flexiHolidayService";
 
 type ResolvedLeaveType = {
   _id: string;
@@ -14,6 +15,15 @@ type ResolvedLeaveType = {
   allowNegativeBalance?: boolean;
   applicableDuringProbation?: boolean;
 };
+
+const FLEXI_CODE = "FLEXI";
+
+const formatFlexiDate = (date: string) =>
+  new Date(`${date}T12:00:00`).toLocaleDateString("en-US", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
 
 export default function ApplyLeave() {
   const { currentUser, leaveBalances, fetchLeaveBalances } = useAuth();
@@ -32,20 +42,79 @@ export default function ApplyLeave() {
   const [submitted, setSubmitted] = useState(false);
   const [submitMessage, setSubmitMessage] = useState("");
   const [error, setError] = useState("");
+  const [inlineInfo, setInlineInfo] = useState("");
   const [loading, setLoading] = useState(false);
   const [attachment, setAttachment] = useState<{ fileName: string; mimeType: string; size: number; base64: string } | null>(null);
+  const [flexiHolidays, setFlexiHolidays] = useState<FlexiHolidayItem[]>([]);
   const lastLoadedUserIdRef = useRef<string | null>(null);
 
   const today = getTodayStr();
+  const roleKey = String(currentUser?.role || "").toUpperCase();
+  const availableTypesFromPolicy = leaveTypes.filter(
+    (lt) => lt.code !== "CL" && !(Boolean(currentUser?.probationStatus) && lt.applicableDuringProbation === false)
+  );
+
+  const fallbackTypesFromBalances: ResolvedLeaveType[] = leaveBalances
+    .filter((lb) => {
+      const code = String(lb?.leaveType?.code || "").toUpperCase();
+      return code === "EL" || code === "SL" || code === "LOP" || code === "FLEXI";
+    })
+    .map((lb) => ({
+      _id: lb.leaveType._id,
+      name: lb.leaveType.name,
+      code: String(lb.leaveType.code || "").toUpperCase(),
+      color: lb.leaveType.color || (String(lb.leaveType.code || "").toUpperCase() === "EL" ? "#10B981" : String(lb.leaveType.code || "").toUpperCase() === "SL" ? "#EF4444" : String(lb.leaveType.code || "").toUpperCase() === "LOP" ? "#64748B" : "#8B5CF6"),
+      allowNegativeBalance: String(lb.leaveType.code || "").toUpperCase() === "LOP",
+      applicableDuringProbation: true,
+    }));
+
+  const resolvedLeaveTypes: ResolvedLeaveType[] =
+    availableTypesFromPolicy.length > 0 ? availableTypesFromPolicy : fallbackTypesFromBalances;
+
+  const selectedType = resolvedLeaveTypes.find((lt) => lt._id === form.leaveTypeId);
+  const selectedBalance = leaveBalances.find((lb) => lb.leaveType._id === form.leaveTypeId);
+  const isFlexiSelected = selectedType?.code === FLEXI_CODE;
+  const flexiLimit = roleKey === "INTERN" ? 1 : 2;
+  const selectedFlexiHoliday = flexiHolidays.find((holiday) => holiday.date === form.fromDate);
 
   useEffect(() => {
-    if (form.fromDate && form.toDate) {
+    if (selectedType?.code === FLEXI_CODE && form.fromDate && form.toDate) {
+      setTotalDays(form.fromDate === form.toDate ? 1 : 0);
+    } else if (form.fromDate && form.toDate) {
       const days = calculateWorkingDays(form.fromDate, form.toDate, form.halfDay);
       setTotalDays(days);
     } else {
       setTotalDays(0);
     }
-  }, [form.fromDate, form.toDate, form.halfDay]);
+  }, [form.fromDate, form.toDate, form.halfDay, selectedType?.code]);
+
+  useEffect(() => {
+    if (!isFlexiSelected) {
+      setInlineInfo("");
+      return;
+    }
+
+    if (!form.fromDate) {
+      setInlineInfo("Flexi Leave can only be applied on approved Flexi Holiday dates.");
+      return;
+    }
+
+    if (!selectedFlexiHoliday) {
+      setInlineInfo("Flexi Leave can only be applied on approved Flexi Holiday dates.");
+      return;
+    }
+
+    setInlineInfo(`Selected Flexi Holiday: ${selectedFlexiHoliday.title} on ${formatFlexiDate(selectedFlexiHoliday.date)} (${selectedFlexiHoliday.day}).`);
+  }, [form.fromDate, isFlexiSelected, selectedFlexiHoliday]);
+
+  useEffect(() => {
+    if (!isFlexiSelected) return;
+    setForm((prev) => ({
+      ...prev,
+      halfDay: false,
+      toDate: prev.fromDate || prev.toDate,
+    }));
+  }, [isFlexiSelected]);
 
   useEffect(() => {
     const userId = currentUser?._id;
@@ -56,33 +125,10 @@ export default function ApplyLeave() {
     fetchLeaveBalances();
     fetchLeaveTypes();
     fetchLeaveRequests();
+    flexiHolidayService.list().then((response) => setFlexiHolidays(response.items || [])).catch(() => setFlexiHolidays([]));
   }, [currentUser?._id, fetchLeaveBalances, fetchLeaveTypes, fetchLeaveRequests]);
 
   if (!currentUser) return null;
-
-  const availableTypesFromPolicy = leaveTypes.filter(
-    (lt) => lt.code !== "CL" && !(Boolean(currentUser.probationStatus) && lt.applicableDuringProbation === false)
-  );
-
-  const fallbackTypesFromBalances: ResolvedLeaveType[] = leaveBalances
-    .filter((lb) => {
-      const code = String(lb?.leaveType?.code || "").toUpperCase();
-      return code === "EL" || code === "SL";
-    })
-    .map((lb) => ({
-      _id: lb.leaveType._id,
-      name: lb.leaveType.name,
-      code: String(lb.leaveType.code || "").toUpperCase(),
-      color: lb.leaveType.color || (String(lb.leaveType.code || "").toUpperCase() === "EL" ? "#10B981" : "#EF4444"),
-      allowNegativeBalance: false,
-      applicableDuringProbation: true,
-    }));
-
-  const resolvedLeaveTypes: ResolvedLeaveType[] =
-    availableTypesFromPolicy.length > 0 ? availableTypesFromPolicy : fallbackTypesFromBalances;
-
-  const selectedType = resolvedLeaveTypes.find((lt) => lt._id === form.leaveTypeId);
-  const selectedBalance = leaveBalances.find((lb) => lb.leaveType._id === form.leaveTypeId);
 
   // Use available if present, fallback to balance
   const availableBalance = selectedBalance ? (selectedBalance.available ?? selectedBalance.balance) : 0;
@@ -99,6 +145,11 @@ export default function ApplyLeave() {
     if (!form.fromDate) return "Please select a from date.";
     if (!form.toDate) return "Please select a to date.";
     if (new Date(form.toDate) < new Date(form.fromDate)) return "To date cannot be before from date.";
+    if (isFlexiSelected) {
+      if (form.halfDay) return "Flexi Leave must be applied as a single full day on an approved Flexi Holiday date.";
+      if (form.fromDate !== form.toDate) return "Flexi Leave must be applied for a single approved Flexi Holiday date.";
+      if (!selectedFlexiHoliday) return "Flexi Leave can only be applied on approved Flexi Holiday dates.";
+    }
     if (!form.reason.trim()) return "Reason is required.";
     if (form.reason.trim().length < 10) return "Please provide a more detailed reason (min. 10 chars).";
     if (totalDays === 0) return "Selected date range has no working days.";
@@ -123,8 +174,8 @@ export default function ApplyLeave() {
       const result = await submitLeaveRequest({
         leaveTypeId: form.leaveTypeId,
         fromDate: form.fromDate,
-        toDate: form.halfDay ? form.fromDate : form.toDate,
-        halfDay: form.halfDay,
+        toDate: form.halfDay || isFlexiSelected ? form.fromDate : form.toDate,
+        halfDay: isFlexiSelected ? false : form.halfDay,
         halfDaySession: form.halfDay ? form.halfDaySession : undefined,
         reason: form.reason.trim(),
         attachment: attachment || undefined,
@@ -195,12 +246,14 @@ export default function ApplyLeave() {
                         className={`p-3 rounded-xl border-2 text-left transition-all ${sel ? "border-blue-500 bg-blue-50" : "border-gray-100 hover:border-gray-200"}`}
                       >
                         <span className="inline-block text-[9px] font-black uppercase tracking-wider text-white px-2 py-0.5 rounded-full mb-2 shadow-sm" style={{ backgroundColor: lt.color }}>
-                          {lt.code === "LOP" ? "Additional Leave" : lt.code}
+                          {lt.code === "LOP" ? "Additional Leave" : lt.code === FLEXI_CODE ? "Flexi Holiday" : lt.code}
                         </span>
                         <p className="text-sm font-bold text-gray-900 leading-tight">{lt.name}</p>
                         <p className="text-xs text-gray-500 mt-0.5">
                           {lt.code === "LOP" ? (
                             <span className="font-semibold text-gray-400">LOP</span>
+                          ) : lt.code === FLEXI_CODE ? (
+                            <>Remaining: <span className={`font-bold ${bal <= 0 ? "text-red-500" : "text-violet-700"}`}>{bal}</span> / {flexiLimit}</>
                           ) : (
                             <>Balance: <span className={`font-bold ${bal <= 2 ? "text-red-500" : "text-green-600"}`}>{bal}</span></>
                           )}
@@ -215,13 +268,19 @@ export default function ApplyLeave() {
                 <input
                   type="checkbox"
                   id="halfDay"
-                  checked={form.halfDay}
+                  checked={isFlexiSelected ? false : form.halfDay}
                   onChange={(e) => handleChange("halfDay", e.target.checked)}
+                  disabled={isFlexiSelected}
                   className="w-4 h-4 rounded border-gray-300 text-blue-600"
                 />
                 <label htmlFor="halfDay" className="text-sm font-medium text-gray-700 cursor-pointer">
                   Half Day Leave
                 </label>
+                {isFlexiSelected && (
+                  <span className="text-xs font-medium text-violet-700 sm:ml-auto">
+                    Flexi Leave is limited to a single full approved date.
+                  </span>
+                )}
                 {form.halfDay && (
                   <select
                     value={form.halfDaySession}
@@ -233,6 +292,26 @@ export default function ApplyLeave() {
                   </select>
                 )}
               </div>
+
+              {isFlexiSelected && (
+                <div className="rounded-xl border border-violet-200 bg-violet-50 px-4 py-3">
+                  <p className="text-sm font-semibold text-violet-900">Flexi Leave can only be applied on approved Flexi Holiday dates.</p>
+                  <p className="text-xs text-violet-800 mt-1">
+                    {roleKey === "INTERN"
+                      ? "Interns can use 1 Flexi Leave day in 2026."
+                      : "Full-time employees can use up to 2 Flexi Leave days in 2026."}
+                  </p>
+                  {inlineInfo && <p className="text-xs text-violet-700 mt-2">{inlineInfo}</p>}
+                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {flexiHolidays.map((holiday) => (
+                      <div key={holiday.date} className={`rounded-lg border px-3 py-2 text-xs ${holiday.date === form.fromDate ? "border-violet-400 bg-white" : "border-violet-100 bg-white/70"}`}>
+                        <p className="font-semibold text-gray-900">{holiday.title}</p>
+                        <p className="text-gray-600">{formatFlexiDate(holiday.date)} • {holiday.day}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -253,12 +332,12 @@ export default function ApplyLeave() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">{form.halfDay ? "Date" : "To Date *"}</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">{form.halfDay || isFlexiSelected ? "Date" : "To Date *"}</label>
                   <input
                     type="date"
-                    value={form.halfDay ? form.fromDate : form.toDate}
+                    value={form.halfDay || isFlexiSelected ? form.fromDate : form.toDate}
                     min={form.fromDate || undefined}
-                    disabled={form.halfDay}
+                    disabled={form.halfDay || isFlexiSelected}
                     onChange={(e) => handleChange("toDate", e.target.value)}
                     className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 disabled:bg-gray-50"
                     required
@@ -278,10 +357,15 @@ export default function ApplyLeave() {
                     </p>
                     {selectedType && selectedType.code !== "LOP" && (
                       <p className="text-xs opacity-90 mt-0.5">
-                        Balance: <strong>{totalBalance}</strong> days.
+                        {selectedType.code === FLEXI_CODE ? "Remaining entitlement" : "Balance"}: <strong>{totalBalance}</strong> days.
                         {availableBalance !== totalBalance && (
                           <> (Available: <strong>{availableBalance}</strong> days after pending requests)</>
                         )}
+                      </p>
+                    )}
+                    {selectedType?.code === FLEXI_CODE && selectedFlexiHoliday && (
+                      <p className="text-xs opacity-90 mt-1">
+                        Flexi Holiday: <strong>{selectedFlexiHoliday.title}</strong> on {formatFlexiDate(selectedFlexiHoliday.date)}.
                       </p>
                     )}
                     {selectedType && selectedType.code === "LOP" && (

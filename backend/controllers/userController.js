@@ -557,6 +557,7 @@ exports.getUserLeaveBalances = async (req, res, next) => {
         if (code === "EL") acc.earned_leave = bal.balance;
         if (code === "SL") acc.sick_leave = bal.balance;
         if (code === "CL") acc.casual_leave = bal.balance;
+        if (code === "FLEXI") acc.flexi_leave = bal.balance;
         acc.used += Number(bal.used || 0);
         acc.pending += Number(bal.pending || 0);
         if (code !== "LOP") {
@@ -565,7 +566,7 @@ exports.getUserLeaveBalances = async (req, res, next) => {
         }
         return acc;
       },
-      { earned_leave: 0, sick_leave: 0, casual_leave: 0, used: 0, pending: 0, total: 0, remaining: 0 }
+      { earned_leave: 0, sick_leave: 0, casual_leave: 0, flexi_leave: 0, used: 0, pending: 0, total: 0, remaining: 0 }
     );
     const lastCredit = await LeaveCreditLog.findOne({ userId: req.params.id }).sort({ month: -1, createdAt: -1 });
     const now = new Date();
@@ -578,6 +579,7 @@ exports.getUserLeaveBalances = async (req, res, next) => {
         earnedLeave: summary.earned_leave,
         sickLeave: summary.sick_leave,
         casualLeave: summary.casual_leave,
+        flexiLeave: summary.flexi_leave,
         creditInfo: {
           lastCreditedMonth: lastCredit?.month || null,
           nextCreditDate: nextCreditDate.toISOString(),

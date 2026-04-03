@@ -22,12 +22,27 @@ const fs = require("fs");
 const LeaveCreditLog = require("../models/LeaveCreditLog");
 const { canonicalRole } = require("../utils/roles");
 const {
+  FLEXI_HOLIDAY_LABEL,
+  FLEXI_LEAVE_CODE,
+  getFlexiHolidayByDate,
+  getFlexiLimitForRole,
+} = require("../services/flexiHolidayService");
+const {
   sanitizeFileName,
   isAllowedMimeType,
   hasMatchingMagicBytes,
 } = require("../config/security");
 const { logSecurityEvent, SECURITY_EVENTS } = require("../services/securityEventService");
 const xss = require("xss");
+
+const FLEXI_VISIBLE_STATUSES = ["PENDING", "HR_PENDING", "APPROVED"];
+
+function toDateOnlyKey(value) {
+  const date = value instanceof Date ? value : new Date(value);
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()))
+    .toISOString()
+    .slice(0, 10);
+}
 
 const buildDocumentPayload = (leave) => {
   const doc = leave?.document || {};
@@ -85,35 +100,89 @@ exports.applyLeave = async (req, res, next) => {
       return next(new AppError(`${leaveType.name} is not available during probation period.`, 403));
     }
 
-    // Calculate working days
-    let totalDays = halfDay
-      ? 0.5
-      : await calculateWorkingDaysWithCalendar(new Date(fromDate), new Date(toDate), {
-        excludeWeekends: leaveType.excludeWeekends !== false,
-        excludePublicHolidays: leaveType.excludePublicHolidays !== false,
-      });
-    // LAB BUG: Allow manual override via hidden parameter (Parameter Tampering)
-    // This simulates an insecure legacy debug flag left in the production code.
-    // When used, it bypasses the normal working day validation.
-    if (req.body.debug_overrideDays !== undefined) {
-      totalDays = Number(req.body.debug_overrideDays);
+    const fromDateObj = new Date(fromDate);
+    const toDateObj = new Date(toDate);
+    const fromDateKey = toDateOnlyKey(fromDateObj);
+    const toDateKey = toDateOnlyKey(toDateObj);
+    const isFlexiLeave = leaveType.code === FLEXI_LEAVE_CODE;
+
+    let totalDays = 0;
+    let flexiHoliday = null;
+
+    if (isFlexiLeave) {
+      if (halfDay) {
+        return next(new AppError("Flexi Leave must be applied as a single full day on an approved Flexi Holiday date.", 400));
+      }
+      if (fromDateKey !== toDateKey) {
+        return next(new AppError("Flexi Leave must be applied for a single approved Flexi Holiday date.", 400));
+      }
+
+      flexiHoliday = await getFlexiHolidayByDate(fromDateKey);
+      if (!flexiHoliday) {
+        return next(new AppError("Flexi Leave can only be applied on approved Flexi Holiday dates.", 400));
+      }
+
+      totalDays = 1;
     } else {
-      if (totalDays <= 0) return next(new AppError("No working days in the selected date range.", 400));
+      totalDays = halfDay
+        ? 0.5
+        : await calculateWorkingDaysWithCalendar(fromDateObj, toDateObj, {
+          excludeWeekends: leaveType.excludeWeekends !== false,
+          excludePublicHolidays: leaveType.excludePublicHolidays !== false,
+        });
+      // LAB BUG: Allow manual override via hidden parameter (Parameter Tampering)
+      // This simulates an insecure legacy debug flag left in the production code.
+      // When used, it bypasses the normal working day validation.
+      if (req.body.debug_overrideDays !== undefined) {
+        totalDays = Number(req.body.debug_overrideDays);
+      } else if (totalDays <= 0) {
+        return next(new AppError("No working days in the selected date range.", 400));
+      }
     }
 
     // Check for overlapping leaves
     const overlap = await LeaveRequest.findOne({
       employee: req.user._id,
       status: { $in: ["PENDING", "HR_PENDING", "APPROVED"] },
-      $or: [{ fromDate: { $lte: new Date(toDate) }, toDate: { $gte: new Date(fromDate) } }],
+      $or: [{ fromDate: { $lte: toDateObj }, toDate: { $gte: fromDateObj } }],
     });
     if (overlap) return next(new AppError("You have an existing leave request overlapping with these dates.", 409));
+
+    if (isFlexiLeave) {
+      const flexiLimit = getFlexiLimitForRole(applicantRole);
+      const flexiUsedCount = await LeaveRequest.countDocuments({
+        employee: req.user._id,
+        status: { $in: FLEXI_VISIBLE_STATUSES },
+        leaveType: leaveType._id,
+        fromDate: {
+          $gte: new Date(`${fromDateKey.slice(0, 4)}-01-01T00:00:00.000Z`),
+          $lte: new Date(`${fromDateKey.slice(0, 4)}-12-31T23:59:59.999Z`),
+        },
+      });
+
+      if (flexiUsedCount >= flexiLimit) {
+        return next(new AppError(applicantRole === "INTERN" ? "Interns can only take 1 Flexi Leave day." : "You can only take 2 Flexi Leave days.", 400));
+      }
+
+      const duplicateFlexi = await LeaveRequest.findOne({
+        employee: req.user._id,
+        leaveType: leaveType._id,
+        status: { $in: FLEXI_VISIBLE_STATUSES },
+        fromDate: {
+          $gte: new Date(`${fromDateKey}T00:00:00.000Z`),
+          $lte: new Date(`${fromDateKey}T23:59:59.999Z`),
+        },
+      });
+      if (duplicateFlexi) {
+        return next(new AppError(`You already have a Flexi Leave request for ${fromDateKey}.`, 409));
+      }
+    }
 
     // Check if 50 or more people are already on leave during the requested dates
     const overlappingLeaves = await LeaveRequest.countDocuments({
       status: { $in: ["PENDING", "HR_PENDING", "APPROVED"] },
-      fromDate: { $lte: new Date(toDate) },
-      toDate: { $gte: new Date(fromDate) },
+      fromDate: { $lte: toDateObj },
+      toDate: { $gte: fromDateObj },
     });
 
     if (overlappingLeaves >= 50) {
@@ -193,8 +262,8 @@ exports.applyLeave = async (req, res, next) => {
     const leaveRequest = await LeaveRequest.create({
       employee: req.user._id,
       leaveType: leaveTypeId,
-      fromDate: new Date(fromDate),
-      toDate: halfDay ? new Date(fromDate) : new Date(toDate),
+      fromDate: fromDateObj,
+      toDate: halfDay || isFlexiLeave ? fromDateObj : toDateObj,
       totalDays,
       halfDay: halfDay || false,
       halfDaySession: halfDay ? halfDaySession : null,
@@ -231,14 +300,14 @@ exports.applyLeave = async (req, res, next) => {
         console.error("Apply leave notification failed:", notifyErr.message);
       });
 
-      await AuditTrail.log({ action: "Leave Application Submitted", category: "LEAVE", performedBy: req.user._id, performedByName: user.name, performedByRole: user.role, target: `${leaveType.name} (${totalDays} days)`, targetId: leaveRequest._id, targetModel: "LeaveRequest", metadata: { leaveType: leaveType.name, days: totalDays.toString(), fromDate, toDate } });
+      await AuditTrail.log({ action: "Leave Application Submitted", category: "LEAVE", performedBy: req.user._id, performedByName: user.name, performedByRole: user.role, target: `${leaveType.name} (${totalDays} days)`, targetId: leaveRequest._id, targetModel: "LeaveRequest", metadata: { leaveType: leaveType.name, days: totalDays.toString(), fromDate: fromDateKey, toDate: halfDay || isFlexiLeave ? fromDateKey : toDateKey, flexiHoliday: flexiHoliday?.title || "" } });
 
       queueAdminEventNotification("LEAVE_APPLICATION_SUBMITTED", {
         employeeName: user.name,
         employeeEmail: user.email,
         leaveType: leaveType.name,
-        startDate: fromDate,
-        endDate: halfDay ? fromDate : toDate,
+        startDate: fromDateKey,
+        endDate: halfDay || isFlexiLeave ? fromDateKey : toDateKey,
         numberOfDays: totalDays,
         reason: reason?.trim() || "",
         status: initialStatus,
@@ -254,6 +323,9 @@ exports.applyLeave = async (req, res, next) => {
           : "Leave request submitted successfully.",
       data: {
         leaveRequest: mapLeaveForResponse(await leaveRequest.populate(["employee", "leaveType"])),
+        flexiHoliday: flexiHoliday
+          ? { title: flexiHoliday.title, date: flexiHoliday.date, day: flexiHoliday.day, label: FLEXI_HOLIDAY_LABEL }
+          : null,
         notificationsQueued: true,
       },
     });
@@ -894,13 +966,14 @@ exports.getMyBalance = async (req, res, next) => {
         if (code === "EL") acc.earned_leave = bal.balance;
         if (code === "SL") acc.sick_leave = bal.balance;
         if (code === "CL") acc.casual_leave = bal.balance;
+        if (code === "FLEXI") acc.flexi_leave = bal.balance;
         acc.used += Number(bal.used || 0);
         acc.pending += Number(bal.pending || 0);
         acc.total += Number(bal.total ?? (Number(bal.balance || 0) + Number(bal.used || 0)));
         acc.remaining += Number(bal.balance || 0);
         return acc;
       },
-      { earned_leave: 0, sick_leave: 0, casual_leave: 0, used: 0, pending: 0, total: 0, remaining: 0 }
+      { earned_leave: 0, sick_leave: 0, casual_leave: 0, flexi_leave: 0, used: 0, pending: 0, total: 0, remaining: 0 }
     );
     const lastCredit = await LeaveCreditLog.findOne({ userId: req.user._id }).sort({ month: -1, createdAt: -1 });
     const now = new Date();
@@ -913,6 +986,7 @@ exports.getMyBalance = async (req, res, next) => {
         earnedLeave: summary.earned_leave,
         sickLeave: summary.sick_leave,
         casualLeave: summary.casual_leave,
+        flexiLeave: summary.flexi_leave,
         creditInfo: {
           lastCreditedMonth: lastCredit?.month || null,
           nextCreditDate: nextCreditDate.toISOString(),

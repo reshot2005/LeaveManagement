@@ -1,8 +1,9 @@
 import React, { useMemo, useRef, useState } from "react";
-import { Pencil, Save, X, ToggleLeft, ToggleRight } from "lucide-react";
+import { Pencil, Save, Trash2, X, ToggleLeft, ToggleRight } from "lucide-react";
 import { DashboardLayout } from "../../layouts/DashboardLayout";
 import { Modal } from "../../components/Modal";
 import { useLeave } from "../../context/LeaveContext";
+import { flexiHolidayService, type FlexiHolidayItem } from "../../services/flexiHolidayService";
 
 const POLICY_DEFAULTS = {
   EL: {
@@ -42,6 +43,19 @@ const POLICY_DEFAULTS = {
     yearlyTotal: 0,
     carryForwardLimit: 0,
     maxConsecutiveDays: 365,
+    isActive: true,
+  },
+  FLEXI: {
+    name: "Flexi Leave",
+    code: "FLEXI",
+    color: "#8B5CF6",
+    description: "Flexi Holiday leave for approved festival dates only",
+    accrualType: "YEARLY",
+    accrualRate: 2,
+    accrualPerMonth: 0,
+    yearlyTotal: 2,
+    carryForwardLimit: 0,
+    maxConsecutiveDays: 1,
     isActive: true,
   },
 } as const;
@@ -87,13 +101,23 @@ export default function LeavePolicy() {
   const [editingType, setEditingType] = useState<any | null>(null);
   const [formData, setFormData] = useState<any>({});
   const [saved, setSaved] = useState(false);
+  const [flexiHolidays, setFlexiHolidays] = useState<FlexiHolidayItem[]>([]);
+  const [flexiForm, setFlexiForm] = useState({ title: "", date: "", day: "", active: true });
+  const [editingFlexiDate, setEditingFlexiDate] = useState<string | null>(null);
   const warnedMissing = useRef<Set<string>>(new Set());
+
+  React.useEffect(() => {
+    flexiHolidayService
+      .list({ includeInactive: true })
+      .then((response) => setFlexiHolidays(response.items || []))
+      .catch(() => setFlexiHolidays([]));
+  }, []);
 
   const policyCards = useMemo(() => {
     const normalized = (leaveTypes || []).map(normalizeLeaveType);
-    const filtered = normalized.filter((lt) => lt.code !== "CL" && lt.isActive !== false && (lt.code === "EL" || lt.code === "SL" || lt.code === "LOP"));
+    const filtered = normalized.filter((lt) => lt.code !== "CL" && lt.isActive !== false && (lt.code === "EL" || lt.code === "SL" || lt.code === "LOP" || lt.code === "FLEXI"));
     const byCode = new Map(filtered.map((lt) => [lt.code, lt]));
-    const requiredCodes: Array<"EL" | "SL" | "LOP"> = ["EL", "SL", "LOP"];
+    const requiredCodes: Array<"EL" | "SL" | "LOP" | "FLEXI"> = ["EL", "SL", "LOP", "FLEXI"];
 
     for (const code of requiredCodes) {
       if (!byCode.has(code)) {
@@ -159,6 +183,10 @@ export default function LeavePolicy() {
       const yearlyTotal = toNumber(lt.yearlyTotal, lt.code === "EL" ? 15 : 12);
       return `${yearlyTotal}/year`;
     }
+    if (lt.code === "FLEXI") {
+      const yearlyTotal = toNumber(lt.yearlyTotal, 2);
+      return `${yearlyTotal}/year`;
+    }
     if (lt.accrualType === "MONTHLY") {
       return `${lt.accrualRate}/month`;
     }
@@ -172,14 +200,60 @@ export default function LeavePolicy() {
     if (lt.code === "EL") {
       return "Accrued monthly leave for planned time off";
     }
+    if (lt.code === "FLEXI") {
+      return "Flexi Holiday leave for approved festival dates only";
+    }
     return lt.description;
+  };
+
+  const resetFlexiForm = () => {
+    setFlexiForm({ title: "", date: "", day: "", active: true });
+    setEditingFlexiDate(null);
+  };
+
+  const reloadFlexiHolidays = async () => {
+    const response = await flexiHolidayService.list({ includeInactive: true });
+    setFlexiHolidays(response.items || []);
+  };
+
+  const handleSaveFlexiHoliday = async () => {
+    if (!flexiForm.title.trim() || !flexiForm.date.trim()) {
+      alert("Flexi Holiday title and date are required.");
+      return;
+    }
+
+    if (editingFlexiDate) {
+      await flexiHolidayService.update(editingFlexiDate, flexiForm);
+    } else {
+      await flexiHolidayService.upsert(flexiForm);
+    }
+
+    await reloadFlexiHolidays();
+    resetFlexiForm();
+  };
+
+  const startEditFlexiHoliday = (item: FlexiHolidayItem) => {
+    setEditingFlexiDate(item.date);
+    setFlexiForm({
+      title: item.title,
+      date: item.date,
+      day: item.day,
+      active: item.active !== false,
+    });
+  };
+
+  const handleDeleteFlexiHoliday = async (date: string) => {
+    if (!window.confirm(`Delete Flexi Holiday ${date}?`)) return;
+    await flexiHolidayService.remove(date);
+    await reloadFlexiHolidays();
+    if (editingFlexiDate === date) resetFlexiForm();
   };
 
   return (
     <DashboardLayout title="Leave Policies" subtitle="Configure leave types, accruals, and rules" allowedRoles={["HR_ADMIN", "MANAGER"]}>
       {saved && <div className="bg-green-50 border border-green-200 text-green-700 text-sm rounded-xl px-4 py-3 mb-5">Leave policy updated successfully.</div>}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         {policyCards.map((lt) => (
           <div key={lt._id || lt.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="h-2 w-full" style={{ backgroundColor: lt.color }} />
@@ -187,10 +261,11 @@ export default function LeavePolicy() {
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <span className="inline-block text-white text-[10px] tracking-wider uppercase font-black px-2.5 py-1 rounded-full mb-2 shadow-sm" style={{ backgroundColor: lt.color }}>
-                    {lt.code === "LOP" ? "Additional Leave" : lt.code}
+                    {lt.code === "LOP" ? "Additional Leave" : lt.code === "FLEXI" ? "Flexi Holiday" : lt.code}
                   </span>
                   <h3 className="text-lg font-bold text-gray-900 leading-tight">{lt.name}</h3>
                   {lt.code === "LOP" && <p className="text-sm font-semibold text-gray-500 mb-1">LOP</p>}
+                  {lt.code === "FLEXI" && <p className="text-sm font-semibold text-violet-700 mb-1">Flexi Holiday</p>}
                   <p className="text-xs text-gray-400 mt-1">{displayDescription(lt)}</p>
                 </div>
                 <button onClick={() => startEdit(lt)} disabled={!lt._id && !lt.id}
@@ -227,6 +302,128 @@ export default function LeavePolicy() {
               </div>
             </div>
           ))}
+        </div>
+      </div>
+
+      <div className="mt-6 bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="font-bold text-gray-900">Flexi Holiday Management</h2>
+            <p className="text-sm text-gray-500">Add, edit, activate, or delete approved Flexi Holiday dates stored in MongoDB.</p>
+          </div>
+          <span className="text-sm font-semibold text-violet-700">{flexiHolidays.length} total dates</span>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 mb-5">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1.5">Title</label>
+            <input
+              type="text"
+              value={flexiForm.title}
+              onChange={(e) => setFlexiForm((prev) => ({ ...prev, title: e.target.value }))}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500"
+              placeholder="Festival name"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1.5">Date</label>
+            <input
+              type="date"
+              value={flexiForm.date}
+              onChange={(e) => setFlexiForm((prev) => ({ ...prev, date: e.target.value }))}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1.5">Day</label>
+            <input
+              type="text"
+              value={flexiForm.day}
+              onChange={(e) => setFlexiForm((prev) => ({ ...prev, day: e.target.value }))}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500"
+              placeholder="Wednesday"
+            />
+          </div>
+          <div className="flex items-end gap-3">
+            <button
+              type="button"
+              onClick={() => setFlexiForm((prev) => ({ ...prev, active: !prev.active }))}
+              className={`inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold ${flexiForm.active ? "bg-green-50 text-green-700 border border-green-200" : "bg-gray-50 text-gray-500 border border-gray-200"}`}
+            >
+              {flexiForm.active ? "Active" : "Inactive"}
+            </button>
+            <button
+              type="button"
+              onClick={handleSaveFlexiHoliday}
+              className="flex-1 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-violet-700"
+            >
+              {editingFlexiDate ? "Update Date" : "Add Date"}
+            </button>
+            {editingFlexiDate && (
+              <button
+                type="button"
+                onClick={resetFlexiForm}
+                className="rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-600 hover:bg-gray-50"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                {["Title", "Date", "Day", "Status", "Actions"].map((header) => (
+                  <th key={header} className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-gray-500">
+                    {header}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {flexiHolidays.map((item) => (
+                <tr key={item.date}>
+                  <td className="px-4 py-3 text-sm font-semibold text-gray-900">{item.title}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{item.date}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{item.day}</td>
+                  <td className="px-4 py-3">
+                    <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${item.active === false ? "bg-gray-100 text-gray-500" : "bg-green-100 text-green-700"}`}>
+                      {item.active === false ? "Inactive" : "Active"}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => startEditFlexiHoliday(item)}
+                        className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteFlexiHoliday(item.date)}
+                        className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {flexiHolidays.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-4 py-8 text-center text-sm text-gray-400">
+                    No Flexi Holiday dates configured yet.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 

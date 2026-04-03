@@ -23,7 +23,7 @@ const roleColors: Record<Role, string> = {
 };
 
 export default function UserManagement() {
-  const { allUsers, leaveTypes, fetchUsers, isLoading, refreshAllData } = useLeave();
+  const { allUsers, leaveTypes, leaveRequests, fetchUsers, isLoading, refreshAllData } = useLeave();
   const [activeTab, setActiveTab] = useState<"active" | "pending">("active");
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("ALL");
@@ -368,6 +368,26 @@ export default function UserManagement() {
     return bal?.balance || 0;
   };
 
+  const editingUserLeaveStats = React.useMemo(() => {
+    if (!editingUser) {
+      return { total: 0, approved: 0, pending: 0, rejected: 0, cancelled: 0 };
+    }
+
+    const editingUserId = String(editingUser._id || editingUser.id || "");
+    const requests = (leaveRequests || []).filter((request) => {
+      const employeeId = String(request.employeeId || request.employee?._id || "");
+      return employeeId === editingUserId;
+    });
+
+    return {
+      total: requests.length,
+      approved: requests.filter((request) => request.status === "APPROVED").length,
+      pending: requests.filter((request) => request.status === "PENDING" || request.status === "HR_PENDING").length,
+      rejected: requests.filter((request) => request.status === "REJECTED").length,
+      cancelled: requests.filter((request) => request.status === "CANCELLED").length,
+    };
+  }, [editingUser, leaveRequests]);
+
   return (
     <DashboardLayout title="User Management" subtitle="Manage employees, roles, and leave balances" allowedRoles={["HR_ADMIN", "MANAGER"]}>
       {/* Loading State */}
@@ -692,6 +712,24 @@ export default function UserManagement() {
                   {formData.probationStatus ? <ToggleRight className="w-7 h-7" /> : <ToggleLeft className="w-7 h-7" />}
                 </button>
                 <span className="text-sm font-medium text-gray-700">On Probation</span>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="text-sm font-bold text-gray-900 mb-2">Leave Request Summary</h4>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                {[
+                  { label: "Applied", value: editingUserLeaveStats.total, color: "text-gray-900" },
+                  { label: "Approved", value: editingUserLeaveStats.approved, color: "text-green-700" },
+                  { label: "Pending", value: editingUserLeaveStats.pending, color: "text-amber-700" },
+                  { label: "Rejected", value: editingUserLeaveStats.rejected, color: "text-red-700" },
+                  { label: "Cancelled", value: editingUserLeaveStats.cancelled, color: "text-slate-700" },
+                ].map((item) => (
+                  <div key={item.label} className="rounded-xl border border-gray-100 bg-gray-50 px-3 py-3">
+                    <p className="text-xs font-medium text-gray-500">{item.label}</p>
+                    <p className={`mt-1 text-lg font-bold ${item.color}`}>{item.value}</p>
+                  </div>
+                ))}
               </div>
             </div>
 
