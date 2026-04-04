@@ -9,6 +9,7 @@ const FLEXI_LIMITS = {
 
 const FLEXI_HOLIDAYS_2026 = [
   { title: "Sankranti (Makar Sankranti)", date: "2026-01-14", day: "Wednesday", active: true },
+  { title: "Sankranti (Makar Sankranti)", date: "2026-01-15", day: "Thursday", active: true },
   { title: "Ugadi (Telugu/Kannada New Year)", date: "2026-03-19", day: "Thursday", active: true },
   { title: "Eid al-Fitr (Ramzan Id)", date: "2026-03-20", day: "Friday", active: true },
   { title: "Good Friday", date: "2026-04-03", day: "Friday", active: true },
