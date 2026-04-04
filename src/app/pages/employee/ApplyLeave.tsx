@@ -116,6 +116,17 @@ export default function ApplyLeave() {
   }, [isFlexiSelected]);
 
   useEffect(() => {
+    if (!isFlexiSelected || !form.fromDate) return;
+    if (form.toDate === form.fromDate && form.halfDay === false) return;
+
+    setForm((prev) => ({
+      ...prev,
+      halfDay: false,
+      toDate: prev.fromDate,
+    }));
+  }, [form.fromDate, form.halfDay, form.toDate, isFlexiSelected]);
+
+  useEffect(() => {
     const userId = currentUser?._id;
     if (!userId) return;
     if (lastLoadedUserIdRef.current === userId) return;
@@ -140,13 +151,14 @@ export default function ApplyLeave() {
     setForm((p) => ({ ...p, [field]: value }));
 
   const validate = () => {
+    const effectiveToDate = isFlexiSelected ? form.fromDate : form.toDate;
+
     if (!form.leaveTypeId) return "Please select a leave type.";
     if (!form.fromDate) return "Please select a from date.";
-    if (!form.toDate) return "Please select a to date.";
-    if (new Date(form.toDate) < new Date(form.fromDate)) return "To date cannot be before from date.";
+    if (!effectiveToDate) return "Please select a to date.";
+    if (new Date(effectiveToDate) < new Date(form.fromDate)) return "To date cannot be before from date.";
     if (isFlexiSelected) {
       if (form.halfDay) return "Flexi Leave must be applied as a single full day on an approved Flexi Holiday date.";
-      if (form.fromDate !== form.toDate) return "Flexi Leave must be applied for a single approved Flexi Holiday date.";
       if (!selectedFlexiHoliday) return "Flexi Leave can only be applied on approved Flexi Holiday dates.";
     }
     if (!form.reason.trim()) return "Reason is required.";
@@ -318,6 +330,16 @@ export default function ApplyLeave() {
                     value={form.fromDate}
                     onChange={(e) => {
                       const newFrom = e.target.value;
+                      if (isFlexiSelected) {
+                        setForm((prev) => ({
+                          ...prev,
+                          fromDate: newFrom,
+                          toDate: newFrom,
+                          halfDay: false,
+                        }));
+                        return;
+                      }
+
                       handleChange("fromDate", newFrom);
                       // If toDate is empty or before the new fromDate, update toDate
                       if (!form.toDate || new Date(form.toDate) < new Date(newFrom)) {

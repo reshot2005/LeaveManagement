@@ -1,6 +1,6 @@
 const { AppError } = require("../middleware/errorHandler");
 const FlexiHoliday = require("../models/FlexiHoliday");
-const { listActiveFlexiHolidays } = require("../services/flexiHolidayService");
+const { ensureFlexiHolidaysSeeded, listActiveFlexiHolidays } = require("../services/flexiHolidayService");
 
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -17,6 +17,8 @@ function normalizeDay(value, date) {
 
 exports.listFlexiHolidays = async (req, res, next) => {
   try {
+    await ensureFlexiHolidaysSeeded();
+
     const start = String(req.query?.start || "").trim();
     const end = String(req.query?.end || "").trim();
     const includeInactive = String(req.query?.includeInactive || "").trim() === "true";
