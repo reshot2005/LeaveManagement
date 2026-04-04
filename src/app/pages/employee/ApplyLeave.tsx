@@ -74,7 +74,6 @@ export default function ApplyLeave() {
   const selectedType = resolvedLeaveTypes.find((lt) => lt._id === form.leaveTypeId);
   const selectedBalance = leaveBalances.find((lb) => lb.leaveType._id === form.leaveTypeId);
   const isFlexiSelected = selectedType?.code === FLEXI_CODE;
-  const flexiLimit = roleKey === "INTERN" ? 1 : 2;
   const selectedFlexiHoliday = flexiHolidays.find((holiday) => holiday.date === form.fromDate);
 
   useEffect(() => {
@@ -253,7 +252,7 @@ export default function ApplyLeave() {
                           {lt.code === "LOP" ? (
                             <span className="font-semibold text-gray-400">LOP</span>
                           ) : lt.code === FLEXI_CODE ? (
-                            <>Remaining: <span className={`font-bold ${bal <= 0 ? "text-red-500" : "text-violet-700"}`}>{bal}</span> / {flexiLimit}</>
+                            <>Balance: <span className={`font-bold ${bal <= 0 ? "text-red-500" : "text-violet-700"}`}>{bal}</span></>
                           ) : (
                             <>Balance: <span className={`font-bold ${bal <= 2 ? "text-red-500" : "text-green-600"}`}>{bal}</span></>
                           )}
@@ -278,7 +277,7 @@ export default function ApplyLeave() {
                 </label>
                 {isFlexiSelected && (
                   <span className="text-xs font-medium text-violet-700 sm:ml-auto">
-                    Flexi Leave is limited to a single full approved date.
+                    Flexi Leave must be applied for one approved full-day date per request.
                   </span>
                 )}
                 {form.halfDay && (
@@ -297,9 +296,7 @@ export default function ApplyLeave() {
                 <div className="rounded-xl border border-violet-200 bg-violet-50 px-4 py-3">
                   <p className="text-sm font-semibold text-violet-900">Flexi Leave can only be applied on approved Flexi Holiday dates.</p>
                   <p className="text-xs text-violet-800 mt-1">
-                    {roleKey === "INTERN"
-                      ? "Interns can use 1 Flexi Leave day in 2026."
-                      : "Full-time employees can use up to 2 Flexi Leave days in 2026."}
+                    Flexi Leave uses your credited FLEXI balance. Apply on any approved Flexi Holiday date while balance is available.
                   </p>
                   {inlineInfo && <p className="text-xs text-violet-700 mt-2">{inlineInfo}</p>}
                   <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -357,7 +354,7 @@ export default function ApplyLeave() {
                     </p>
                     {selectedType && selectedType.code !== "LOP" && (
                       <p className="text-xs opacity-90 mt-0.5">
-                        {selectedType.code === FLEXI_CODE ? "Remaining entitlement" : "Balance"}: <strong>{totalBalance}</strong> days.
+                        {selectedType.code === FLEXI_CODE ? "Credited balance" : "Balance"}: <strong>{totalBalance}</strong> days.
                         {availableBalance !== totalBalance && (
                           <> (Available: <strong>{availableBalance}</strong> days after pending requests)</>
                         )}

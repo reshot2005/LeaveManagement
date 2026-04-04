@@ -25,7 +25,6 @@ const {
   FLEXI_HOLIDAY_LABEL,
   FLEXI_LEAVE_CODE,
   getFlexiHolidayByDate,
-  getFlexiLimitForRole,
 } = require("../services/flexiHolidayService");
 const {
   sanitizeFileName,
@@ -149,21 +148,6 @@ exports.applyLeave = async (req, res, next) => {
     if (overlap) return next(new AppError("You have an existing leave request overlapping with these dates.", 409));
 
     if (isFlexiLeave) {
-      const flexiLimit = getFlexiLimitForRole(applicantRole);
-      const flexiUsedCount = await LeaveRequest.countDocuments({
-        employee: req.user._id,
-        status: { $in: FLEXI_VISIBLE_STATUSES },
-        leaveType: leaveType._id,
-        fromDate: {
-          $gte: new Date(`${fromDateKey.slice(0, 4)}-01-01T00:00:00.000Z`),
-          $lte: new Date(`${fromDateKey.slice(0, 4)}-12-31T23:59:59.999Z`),
-        },
-      });
-
-      if (flexiUsedCount >= flexiLimit) {
-        return next(new AppError(applicantRole === "INTERN" ? "Interns can only take 1 Flexi Leave day." : "You can only take 2 Flexi Leave days.", 400));
-      }
-
       const duplicateFlexi = await LeaveRequest.findOne({
         employee: req.user._id,
         leaveType: leaveType._id,

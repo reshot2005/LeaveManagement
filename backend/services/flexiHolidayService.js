@@ -2,10 +2,6 @@ const FlexiHoliday = require("../models/FlexiHoliday");
 
 const FLEXI_LEAVE_CODE = "FLEXI";
 const FLEXI_HOLIDAY_LABEL = "Flexi Holiday";
-const FLEXI_LIMITS = {
-  EMPLOYEE: 2,
-  INTERN: 1,
-};
 
 const FLEXI_HOLIDAYS_2026 = [
   { title: "Sankranti (Makar Sankranti)", date: "2026-01-14", day: "Wednesday", active: true },
@@ -52,17 +48,11 @@ async function getFlexiHolidayByDate(date) {
   return FlexiHoliday.findOne({ date, active: true }).lean();
 }
 
-function getFlexiLimitForRole(role) {
-  return role === "INTERN" ? FLEXI_LIMITS.INTERN : FLEXI_LIMITS.EMPLOYEE;
-}
-
 module.exports = {
   FLEXI_HOLIDAY_LABEL,
   FLEXI_HOLIDAYS_2026,
   FLEXI_LEAVE_CODE,
-  FLEXI_LIMITS,
   ensureFlexiHolidaysSeeded,
   getFlexiHolidayByDate,
-  getFlexiLimitForRole,
   listActiveFlexiHolidays,
 };

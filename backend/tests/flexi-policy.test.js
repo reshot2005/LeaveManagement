@@ -4,7 +4,6 @@ const assert = require("node:assert/strict");
 const {
   FLEXI_HOLIDAYS_2026,
   FLEXI_LEAVE_CODE,
-  getFlexiLimitForRole,
 } = require("../services/flexiHolidayService");
 
 test("flexi leave code and approved 2026 dates are defined", () => {
@@ -26,8 +25,10 @@ test("flexi leave code and approved 2026 dates are defined", () => {
   );
 });
 
-test("flexi leave limit differs by role", () => {
-  assert.equal(getFlexiLimitForRole("EMPLOYEE"), 2);
-  assert.equal(getFlexiLimitForRole("MANAGER"), 2);
-  assert.equal(getFlexiLimitForRole("INTERN"), 1);
+test("flexi holiday seed includes both Sankranti dates", () => {
+  const sankrantiDates = FLEXI_HOLIDAYS_2026
+    .filter((item) => item.title === "Sankranti (Makar Sankranti)")
+    .map((item) => item.date);
+
+  assert.deepEqual(sankrantiDates, ["2026-01-14", "2026-01-15"]);
 });
